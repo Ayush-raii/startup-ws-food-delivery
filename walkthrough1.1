@@ -1,0 +1,96 @@
+# 🎉 All Features Complete — Walkthrough
+
+## TypeScript Status: ✅ 0 Errors
+
+---
+
+## 1. Admin Panel
+
+### Access URL
+Navigate to: **`http://localhost:3000/login/admin`**
+
+> This URL is completely separate from the regular `/login` page. Regular users have **no way** to reach the admin portal unless they type the URL directly.
+
+### Admin Credentials
+| Field | Value |
+|-------|-------|
+| Email | `admin@example.com` |
+| Password | `admin123` |
+
+### Admin Dashboard Features (`/admin/dashboard`)
+- **Global summary cards**: Total restaurants, gross platform revenue, total 10% commission earned
+- **Sortable restaurant table**: Sort by Name, Orders, Revenue, or Commission
+- **Status badges**: `active` (green), `pending` (orange pulse), `inactive` (grey)
+- **Accept pending restaurants** — "Accept" button for new signups with `pending` status
+- **Deactivate active restaurants** — "Deactivate" button for active merchants
+- **Re-activate** — "Activate" button for inactive merchants
+- **Delete restaurant** — Permanently removes restaurant and unbinds all staff/owners
+- **Add new restaurant** — Modal form to create a restaurant directly from admin panel (starts as `active`)
+- **Refresh button** — Manually refresh analytics table
+
+---
+
+## 2. Profile Management (All Roles)
+
+### Navbar Profile Modal
+- **Every logged-in user** (customer, owner, staff, admin) sees a clickable profile button in the Navbar
+- Clicking it opens a modal showing their **role**, **email/phone**, and an editable **name** field
+- Saves via `PUT /api/auth/me`
+
+### Owner Dashboard — Profile & Performance Tab
+Owners have a dedicated **Profile & Performance** tab in the restaurant dashboard with:
+
+#### Analytics Cards
+| Metric | Today | This Month |
+|--------|-------|------------|
+| Revenue (Delivered only) | ✅ | ✅ |
+| Order Count | ✅ | ✅ |
+| 10% Platform Commission | ✅ | ✅ |
+
+#### Restaurant Settings Editor
+- Change restaurant name
+- Change banner image URL (with live preview)
+- Edit cuisine tags (comma-separated)
+
+#### Owner Profile Editor
+- Change personal account name
+
+---
+
+## 3. Multi-Tenant Restaurant Isolation
+- Each restaurant has its own owner, staff, and orders
+- Owners can only see/manage **their own** restaurant's data
+- Staff riders only see orders assigned to **their restaurant**
+- Admin sees **all** restaurants globally
+
+---
+
+## 4. Delivery Staff Management
+
+Owners can register internal delivery riders from the **Delivery Riders** tab:
+- Enter rider name + phone number
+- Rider can immediately log in from **`/login`** using phone-only login
+- Riders appear in the assignment dropdown when dispatching orders
+
+---
+
+## 5. New Restaurant Registration Flow (Pending → Active)
+1. A new restaurant owner registers their account via `/register` (role: owner)
+2. Their restaurant starts with `status: 'pending'`
+3. Admin sees the pending restaurant in the dashboard (orange pulsing badge)
+4. Admin clicks **"Accept"** → restaurant becomes `active` → customers can order
+
+---
+
+## Seeded Demo Accounts
+
+| Role | Email | Password | Phone |
+|------|-------|----------|-------|
+| Admin | `admin@example.com` | `admin123` | — |
+| Customer | `customer@example.com` | `password123` | — |
+| Owner (Royal India) | `owner@example.com` | `password123` | — |
+| Owner (Burger Lab) | `burger_owner@example.com` | `password123` | — |
+| Owner (Taco Fiesta) | `taco_owner@example.com` | `password123` | — |
+| Staff/Rider | — | — | `9876543210` |
+| Staff/Rider | — | — | `9876543211` |
+| Staff/Rider | — | — | `9876543212` |
