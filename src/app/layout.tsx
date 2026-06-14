@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full scroll-smooth">
-      <body className={`${inter.className} flex flex-col min-h-screen`}>
+    <html lang="en" className="h-full scroll-smooth overflow-x-hidden">
+      <body className={`${inter.className} flex flex-col min-h-screen overflow-x-hidden`}>
         <CartProvider>
           <Navbar />
           <main className="flex-grow flex flex-col">

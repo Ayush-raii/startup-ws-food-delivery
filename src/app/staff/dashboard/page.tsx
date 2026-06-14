@@ -20,6 +20,17 @@ interface Order {
   createdAt: string;
 }
 
+// Extract GPS coordinates from address string to provide direct direction link on Google Maps
+const getMapsUrl = (address: string) => {
+  const match = address.match(/GPS:\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+  if (match) {
+    const lat = match[1];
+    const lng = match[2];
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+};
+
 export default function StaffDashboard() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -216,7 +227,7 @@ export default function StaffDashboard() {
                   {/* Action buttons (Maps & Phone) */}
                   <div className="grid grid-cols-2 gap-3">
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress)}`}
+                      href={getMapsUrl(order.deliveryAddress)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold"

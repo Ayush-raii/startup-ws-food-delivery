@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(0);
   const [customAddress, setCustomAddress] = useState('');
   const [useCustomAddress, setUseCustomAddress] = useState(false);
+  const [gpsCoordinates, setGpsCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
   // Price calculations
   const subtotal = getCartTotal();
@@ -32,16 +33,35 @@ export default function CheckoutPage() {
   const grandTotal = subtotal + gst + deliveryFee;
 
   useEffect(() => {
+    // Try to load confirmed location from dashboard
+    const savedLocation = localStorage.getItem('user_location');
+    if (savedLocation) {
+      try {
+        const parsed = JSON.parse(savedLocation);
+        if (parsed && parsed.address) {
+          setCustomAddress(parsed.address);
+          setUseCustomAddress(true);
+        }
+        if (parsed && parsed.lat && parsed.lng) {
+          setGpsCoordinates({ lat: parsed.lat, lng: parsed.lng });
+        }
+      } catch (e) {
+        console.error('Failed to parse saved location from localStorage:', e);
+      }
+    }
+
     async function fetchUser() {
       try {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          if (data.user.savedAddresses && data.user.savedAddresses.length > 0) {
-            setSelectedAddressIndex(0);
-          } else {
-            setUseCustomAddress(true);
+          if (!savedLocation) { // Only override if there is no confirmed session location
+            if (data.user.savedAddresses && data.user.savedAddresses.length > 0) {
+              setSelectedAddressIndex(0);
+            } else {
+              setUseCustomAddress(true);
+            }
           }
         }
       } catch (err) {
@@ -69,6 +89,9 @@ export default function CheckoutPage() {
         return;
       }
       deliveryAddress = customAddress.trim();
+      if (gpsCoordinates) {
+        deliveryAddress += ` | GPS: ${gpsCoordinates.lat.toFixed(6)},${gpsCoordinates.lng.toFixed(6)}`;
+      }
     } else {
       if (!user || !user.savedAddresses[selectedAddressIndex]) {
         setError('Please select an address.');
