@@ -38,7 +38,7 @@ export async function seedDatabase(forceReset: boolean = false) {
     const restaurantsData = [
       {
         name: 'Royal India',
-        bannerImage: 'https://images.unsplash.com/photo-1585938338392-50a59970d8ee?auto=format&fit=crop&q=80&w=1200',
+        bannerImage: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=1200',
         cuisineTags: ['North Indian', 'Mughlai', 'Tandoor'],
         status: 'active',
         menu: [

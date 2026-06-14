@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, SlidersHorizontal, Star, Clock, Heart, ArrowRight, ClipboardCheck } from 'lucide-react';
 
+// Hero background image URL. Customize this URL to change the hero banner background image.
+const HERO_BACKGROUND_IMAGE = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1600';
+
 interface Restaurant {
   _id: string;
   name: string;
@@ -82,41 +85,37 @@ export default function CustomerDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-10">
       
-      {/* Banner Carousel (Promo Block) */}
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md border border-orange-400/20 bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 text-white">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-0">
-          {/* Text Content */}
-          <div className="space-y-3 z-10 p-6 sm:p-10 flex-1">
-            <span className="inline-block bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              🎉 Limited Time Offer
-            </span>
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
-              Free Delivery on your first order!
-            </h1>
-            <p className="text-white/80 font-medium text-sm">
-              Directly dispatched by the kitchen's own staff for faster, fresher service.
-            </p>
-            <div className="pt-1">
-              <button className="bg-white text-orange-600 font-bold px-5 py-2.5 rounded-xl hover:bg-orange-50 transition-all flex items-center gap-1.5 shadow-lg shadow-orange-900/20 text-sm">
-                Explore Top Cuisines <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Banner Image */}
-          <div className="w-full sm:w-72 lg:w-80 flex-shrink-0 h-44 sm:h-56 overflow-hidden">
-            <img
-              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600"
-              alt="Delicious Food Collage"
-              className="object-cover h-full w-full"
-            />
+      {/* Hero Banner Section */}
+      <div 
+        className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-slate-100 bg-cover bg-center text-white min-h-[220px] sm:min-h-[280px] flex items-center"
+        style={{ backgroundImage: `linear-gradient(to right, rgba(0, 0, 0, 0.85) 40%, rgba(0, 0, 0, 0.4) 100%), url(${HERO_BACKGROUND_IMAGE})` }}
+      >
+        <div className="relative z-10 p-6 sm:p-12 max-w-lg space-y-3 sm:space-y-4">
+          <span className="inline-block bg-orange-500/95 text-white px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+            🎉 Limited Time Offer
+          </span>
+          <h1 className="text-xl sm:text-4xl font-black leading-tight tracking-tight text-white">
+            Free Delivery on your first order!
+          </h1>
+          <p className="text-slate-200 font-medium text-xs sm:text-sm max-w-sm">
+            Directly dispatched by the kitchen's own staff for faster, fresher service.
+          </p>
+          <div className="pt-1.5">
+            <button 
+              onClick={() => {
+                document.getElementById('restaurants-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-orange-950/20 text-xs sm:text-sm"
+            >
+              Explore Top Cuisines <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </div>
 
 
       {/* Main Content Area */}
-      <div className="space-y-4 sm:space-y-6">
+      <div id="restaurants-section" className="scroll-mt-24 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             Popular Kitchens Near You
@@ -175,47 +174,52 @@ export default function CustomerDashboard() {
           </div>
         ) : (
           /* Restaurant Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredRestaurants.map((restaurant) => (
               <Link
                 href={`/customer/restaurant/${restaurant._id}`}
                 key={restaurant._id}
-                className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-md transition-all flex flex-col h-full"
+                className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-100 hover:shadow-md transition-all flex flex-row sm:flex-col p-2.5 sm:p-0 gap-3 sm:gap-0 h-auto sm:h-full items-center sm:items-stretch"
               >
                 {/* Banner */}
-                <div className="relative h-44 w-full bg-slate-100 overflow-hidden">
+                <div className="relative w-24 h-24 sm:w-full sm:h-44 bg-slate-100 overflow-hidden rounded-lg sm:rounded-none flex-shrink-0">
                   <img
                     src={restaurant.bannerImage}
                     alt={restaurant.name}
                     className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-black text-slate-800 shadow-sm">
+                  <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[9px] font-black text-slate-800 shadow-sm sm:top-3 sm:right-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
                     4.4 ★
                   </div>
                 </div>
 
                 {/* Details */}
-                <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
+                <div className="flex-grow flex flex-col justify-between h-24 sm:h-auto py-1 sm:p-5 min-w-0 sm:space-y-4">
+                  <div className="space-y-1 sm:space-y-1.5 min-w-0">
+                    <h3 className="text-sm sm:text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors truncate">
                       {restaurant.name}
                     </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      {restaurant.cuisineTags.map((tag) => (
-                        <span key={tag} className="text-[10px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                    <div className="flex flex-wrap gap-1">
+                      {restaurant.cuisineTags.slice(0, 2).map((tag) => (
+                        <span key={tag} className="text-[9px] sm:text-[10px] font-semibold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                           {tag}
                         </span>
                       ))}
+                      {restaurant.cuisineTags.length > 2 && (
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 sm:inline hidden">
+                          +{restaurant.cuisineTags.length - 2}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-50 flex items-center justify-between text-xs text-slate-500 font-medium">
+                  <div className="pt-1.5 sm:pt-2 border-t border-slate-50 flex items-center justify-between text-[10px] sm:text-xs text-slate-500 font-medium">
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-slate-400" />
+                      <Clock className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-400" />
                       <span>25-30 mins</span>
                     </div>
                     <span className="text-primary-600 font-extrabold flex items-center gap-0.5">
-                      Order Now <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                      Order <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                     </span>
                   </div>
                 </div>
