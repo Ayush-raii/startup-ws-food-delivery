@@ -1,11 +1,7 @@
 import mongoose from 'mongoose';
 import { seedDatabase } from './seed';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
-}
+// We will check MONGODB_URI inside dbConnect to avoid build-time crashes if environment variables are not loaded.
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -23,6 +19,12 @@ if (!cached) {
 }
 
 export async function dbConnect() {
+  const MONGODB_URI = process.env.MONGODB_URI;
+
+  if (!MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  }
+
   if (cached!.conn) {
     return cached!.conn;
   }
@@ -32,7 +34,7 @@ export async function dbConnect() {
       bufferCommands: false,
     };
 
-    cached!.promise = mongoose.connect(MONGODB_URI!, opts).then(async (m) => {
+    cached!.promise = mongoose.connect(MONGODB_URI, opts).then(async (m) => {
       console.log('Connected to MongoDB.');
       // Run seed utility
       try {
