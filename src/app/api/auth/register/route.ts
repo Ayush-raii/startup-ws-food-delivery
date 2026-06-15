@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         name: restaurantName,
         bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200',
         cuisineTags: ['Fast Food', 'Multi-Cuisine'],
-        status: 'active',
+        status: 'pending',
         menu: [], // Empty menu initially
       });
 

@@ -42,6 +42,7 @@ interface Staff {
 export default function OwnerDashboard() {
   // Tabs: 'orders' | 'menu' | 'staff' | 'profile'
   const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'staff' | 'profile'>('orders');
+  const [restaurantStatus, setRestaurantStatus] = useState<'active' | 'inactive' | 'pending'>('active');
 
   // Restaurant Profile editing states
   const [restFormName, setRestFormName] = useState('');
@@ -243,6 +244,7 @@ export default function OwnerDashboard() {
         if (resRest.ok) {
           const dataRest = await resRest.json();
           setRestaurantName(dataRest.restaurant.name);
+          setRestaurantStatus(dataRest.restaurant.status || 'pending');
           setMenuItems(dataRest.restaurant.menu || []);
           if (!silent) {
             setRestFormName(dataRest.restaurant.name);
@@ -481,6 +483,32 @@ export default function OwnerDashboard() {
   const dispatchedOrders = orders.filter((o) => o.orderStatus === 'Out for Delivery');
   const pastOrders = orders.filter((o) => ['Delivered', 'Rejected'].includes(o.orderStatus));
 
+  const renderLockoutView = () => (
+    <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center max-w-2xl mx-auto shadow-sm space-y-6 my-4">
+      <div className="mx-auto w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center border border-amber-200">
+        <ShieldAlert className="h-8 w-8 text-amber-500 animate-pulse" />
+      </div>
+      <div className="space-y-2">
+        <h2 className="text-xl font-black text-slate-800">
+          {restaurantStatus === 'pending' ? 'Registration Under Review' : 'Store Access Deactivated'}
+        </h2>
+        <p className="text-slate-500 text-sm leading-relaxed font-semibold">
+          {restaurantStatus === 'pending' 
+            ? 'Your store account is currently awaiting administrative approval. Once approved, you can start managing orders, menu catalog, and your delivery staff.'
+            : 'Your merchant store access has been deactivated by the system administrator. Please contact operations support to reactivate your listing.'}
+        </p>
+      </div>
+      <div className="pt-2">
+        <button 
+          onClick={() => setActiveTab('profile')}
+          className="bg-primary-600 hover:bg-primary-750 text-white font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-md shadow-primary-200"
+        >
+          Configure Store Profile
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-5 sm:space-y-8">
       
@@ -512,6 +540,32 @@ export default function OwnerDashboard() {
           </div>
         </div>
       </div>
+
+      {restaurantStatus !== 'active' && (
+        <div className={`p-4.5 rounded-2xl border flex items-center gap-3.5 ${
+          restaurantStatus === 'pending'
+            ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm'
+            : 'bg-red-50 border-red-200 text-red-900 shadow-sm'
+        }`}>
+          <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            restaurantStatus === 'pending' ? 'bg-amber-500/10 text-amber-600' : 'bg-red-500/10 text-red-600'
+          }`}>
+            <ShieldAlert className="h-5 w-5 animate-pulse" />
+          </div>
+          <div>
+            <h4 className="text-sm font-extrabold">
+              {restaurantStatus === 'pending' 
+                ? 'Store Setup - Awaiting Approval'
+                : 'Service Interrupted - Deactivated'}
+            </h4>
+            <p className="text-xs font-semibold opacity-90 mt-0.5 leading-relaxed">
+              {restaurantStatus === 'pending'
+                ? 'Your registration has been submitted successfully and is currently pending review by the platform administrator. You can configure your store brand identity below.'
+                : 'Your storefront service is currently disabled. Active customers cannot find your store or place orders at this time.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tabs list */}
       <div className="flex border-b border-slate-200 gap-1 sm:gap-6 overflow-x-auto scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
@@ -559,8 +613,9 @@ export default function OwnerDashboard() {
 
       {/* 1. ORDERS TAB */}
       {activeTab === 'orders' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          
+        restaurantStatus !== 'active' ? renderLockoutView() : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            
           {/* Active Incoming / Cooking (Col 1-2) */}
           <div className="lg:col-span-2 space-y-6">
             <h3 className="text-lg font-bold text-slate-900">Incoming & Preparation Queue</h3>
@@ -734,13 +789,15 @@ export default function OwnerDashboard() {
 
           </div>
 
-        </div>
+          </div>
+        )
       )}
 
       {/* 2. MENU CRUD TAB */}
       {activeTab === 'menu' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
+        restaurantStatus !== 'active' ? renderLockoutView() : (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-slate-900">Items Catalog</h3>
             <button
               onClick={() => { resetMenuForm(); setShowMenuModal(true); }}
@@ -939,14 +996,15 @@ export default function OwnerDashboard() {
             </div>
           )}
 
-        </div>
+          </div>
+        )
       )}
 
       {/* 3. STAFF / RIDERS TAB */}
       {activeTab === 'staff' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          
-          {/* Register Rider Form (Col 1) */}
+        restaurantStatus !== 'active' ? renderLockoutView() : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {/* Register Rider Form (Col 1) */}
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-1.5">
               <UserPlus className="h-5 w-5 text-primary-500" />
@@ -1030,7 +1088,8 @@ export default function OwnerDashboard() {
             )}
           </div>
 
-        </div>
+          </div>
+        )
       )}
 
       {/* 4. PROFILE & ANALYTICS TAB */}

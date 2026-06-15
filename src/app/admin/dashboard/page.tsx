@@ -267,6 +267,54 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Pending Requests Section */}
+      {restaurants.filter(r => r.status === 'pending').length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+            <h2 className="text-xs font-black text-amber-500 uppercase tracking-widest">Pending Registration Requests</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {restaurants.filter(r => r.status === 'pending').map((rest) => (
+              <div key={rest._id} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 flex flex-col justify-between hover:border-slate-700 transition-all">
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-center">
+                    <div className="h-12 w-16 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 flex-shrink-0">
+                      <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm leading-tight">{rest.name}</h4>
+                      <span className="text-[10px] text-slate-450 font-bold block mt-1">ID: #{rest._id.substring(18)}</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 p-3 rounded-xl space-y-1 text-[11px]">
+                    <span className="block text-slate-400 font-bold uppercase tracking-wider text-[9px]">Merchant Owner</span>
+                    <div className="text-white font-extrabold">{rest.owner.name}</div>
+                    <div className="text-slate-450 truncate">{rest.owner.email}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2.5 pt-2 border-t border-slate-800/60 justify-end">
+                  <button
+                    onClick={() => handleUpdateStatus(rest._id, 'active')}
+                    className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm transition-all"
+                    title="Allow Restaurant Access"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Allow Access
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                    className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm transition-all"
+                    title="Deny Restaurant"
+                  >
+                    <Ban className="h-3.5 w-3.5" /> Deny
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Table Panel */}
       <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -280,8 +328,8 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* Responsive Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-slate-600 font-semibold text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
@@ -364,20 +412,29 @@ export default function AdminDashboard() {
                       <div className="flex gap-2.5 justify-end">
                         {/* Approve Accept for Pending */}
                         {rest.status === 'pending' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rest._id, 'active')}
-                            className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
-                            title="Accept Merchant Store"
-                          >
-                            <Check className="h-3 w-3" /> Accept
-                          </button>
+                          <div className="flex gap-1.5 justify-end">
+                            <button
+                              onClick={() => handleUpdateStatus(rest._id, 'active')}
+                              className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
+                              title="Allow Access to Merchant Store"
+                            >
+                              <Check className="h-3 w-3" /> Access
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                              className="bg-red-650 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
+                              title="Deny Merchant Store"
+                            >
+                              <Ban className="h-3 w-3" /> Deny
+                            </button>
+                          </div>
                         )}
 
                         {/* Block/Deactivate for Active */}
                         {rest.status === 'active' && (
                           <button
                             onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-650 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
                             title="Deactivate Store"
                           >
                             <Ban className="h-3 w-3 text-red-500" /> Deactivate
@@ -411,6 +468,117 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Grid/Card View */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {sortedRestaurants.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 font-bold text-xs">
+              No restaurant listings found. Add a merchant to begin tracking.
+            </div>
+          ) : (
+            sortedRestaurants.map((rest) => (
+              <div key={rest._id} className="p-5 space-y-4">
+                {/* Brand and Status */}
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-14 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
+                      <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-slate-850 text-sm block leading-none">{rest.name}</span>
+                      <span className="text-[9px] text-slate-400 font-medium block mt-1">ID: #{rest._id.substring(18)}</span>
+                    </div>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                    rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
+                    rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
+                    'bg-slate-100 border-slate-200 text-slate-650'
+                  }`}>
+                    {rest.status}
+                  </span>
+                </div>
+
+                {/* Owner details */}
+                <div className="bg-slate-50/70 p-3 rounded-xl text-slate-600 space-y-0.5">
+                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Owner Details</div>
+                  <div className="font-bold text-slate-850 text-xs">{rest.owner.name}</div>
+                  <div className="text-[10px] text-slate-500 font-medium">{rest.owner.email}</div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-3 gap-2 text-center bg-slate-50/40 p-2.5 rounded-xl border border-slate-100/50">
+                  <div>
+                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Orders</span>
+                    <span className="block text-slate-700 font-bold text-xs mt-0.5">{rest.stats.totalOrders}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Revenue</span>
+                    <span className="block text-slate-950 font-black text-xs mt-0.5">₹{rest.stats.totalRevenue.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[8px] font-black text-slate-450 uppercase tracking-wider">Commission</span>
+                    <span className="block text-amber-600 font-black text-xs mt-0.5">₹{rest.stats.commission.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Control Actions */}
+                <div className="flex gap-2 justify-end pt-1">
+                  {/* Approve Accept/Deny for Pending */}
+                  {rest.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleUpdateStatus(rest._id, 'active')}
+                        className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
+                        title="Allow Access to Merchant Store"
+                      >
+                        <Check className="h-3 w-3" /> Access
+                      </button>
+                      <button
+                        onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                        className="bg-red-650 hover:bg-red-755 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
+                        title="Deny Merchant Store"
+                      >
+                        <Ban className="h-3 w-3" /> Deny
+                      </button>
+                    </>
+                  )}
+
+                  {/* Block/Deactivate for Active */}
+                  {rest.status === 'active' && (
+                    <button
+                      onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-650 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                      title="Deactivate Store"
+                    >
+                      <Ban className="h-3 w-3 text-red-500" /> Deactivate
+                    </button>
+                  )}
+
+                  {/* Reactivate for Inactive */}
+                  {rest.status === 'inactive' && (
+                    <button
+                      onClick={() => handleUpdateStatus(rest._id, 'active')}
+                      className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                      title="Re-activate Store"
+                    >
+                      <Check className="h-3 w-3 text-green-400" /> Activate
+                    </button>
+                  )}
+
+                  {/* Delete Store */}
+                  <button
+                    onClick={() => handleDeleteRestaurant(rest._id, rest.name)}
+                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-1.5 rounded-lg"
+                    title="Permanently Remove Store"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+              </div>
+            ))
+          )}
         </div>
 
       </div>

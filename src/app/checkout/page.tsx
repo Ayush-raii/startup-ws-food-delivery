@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, MapPin, CreditCard, ChevronRight, Check } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, MapPin, CreditCard, ChevronRight, Check, Navigation } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 interface UserProfile {
@@ -25,6 +25,24 @@ export default function CheckoutPage() {
   const [customAddress, setCustomAddress] = useState('');
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setGpsCoordinates({ lat: latitude, lng: longitude });
+        setCustomAddress(`Delivered via GPS Location (Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)})`);
+      },
+      (error) => {
+        alert('Unable to retrieve your location: ' + error.message);
+      }
+    );
+  };
 
   // Price calculations
   const subtotal = getCartTotal();
@@ -236,11 +254,27 @@ export default function CheckoutPage() {
                   placeholder="Enter full flat address, street name, pincode, landmark..."
                   rows={3}
                 />
+                
+                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-primary-500 rounded-xl text-xs font-bold text-slate-650 hover:text-primary-500 transition-colors bg-white shadow-sm"
+                  >
+                    <Navigation className="h-3.5 w-3.5 text-primary-500 animate-pulse" /> Autofill Current Location (GPS)
+                  </button>
+                  {gpsCoordinates && (
+                    <span className="text-[10px] font-bold text-green-650 bg-green-50 px-2 py-1 rounded-full border border-green-200">
+                      GPS Connected ({gpsCoordinates.lat.toFixed(4)}, {gpsCoordinates.lng.toFixed(4)})
+                    </span>
+                  )}
+                </div>
+
                 {user && user.savedAddresses.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setUseCustomAddress(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800"
+                    className="text-xs font-bold text-slate-500 hover:text-slate-800 block mt-2"
                   >
                     Cancel and use a saved address
                   </button>

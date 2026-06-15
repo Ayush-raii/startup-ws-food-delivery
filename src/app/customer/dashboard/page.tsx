@@ -70,71 +70,7 @@ export default function CustomerDashboard() {
   const [filterVeg, setFilterVeg] = useState(false);
   const [sortBy, setSortBy] = useState<'rating' | 'cost_asc' | 'cost_desc' | 'default'>('default');
 
-  // Location Selector States
-  const [selectedAddress, setSelectedAddress] = useState('Select your location');
-  const [locationInput, setLocationInput] = useState('');
-  const [userCoordinates, setUserCoordinates] = useState<{ lat: number; lng: number } | null>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('user_location');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.address) {
-          setSelectedAddress(parsed.address);
-          setLocationInput(parsed.address);
-        }
-        if (parsed.lat && parsed.lng) {
-          setUserCoordinates({ lat: parsed.lat, lng: parsed.lng });
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, []);
-
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserCoordinates({ lat: latitude, lng: longitude });
-        const coordsStr = `GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
-        setLocationInput(`Current Location: ${coordsStr}`);
-      },
-      (error) => {
-        alert('Unable to retrieve your location: ' + error.message);
-      }
-    );
-  };
-
-  const handleConfirmLocation = () => {
-    if (!locationInput.trim()) {
-      alert('Please enter an address or locate yourself first.');
-      return;
-    }
-
-    let coords = userCoordinates;
-    if (!coords) {
-      // Default to Center of Delhi if they manually typed and haven't used GPS
-      coords = { lat: 28.6139, lng: 77.2090 };
-    }
-
-    const newLocation = {
-      address: locationInput.trim(),
-      lat: coords.lat,
-      lng: coords.lng,
-    };
-
-    localStorage.setItem('user_location', JSON.stringify(newLocation));
-    setSelectedAddress(newLocation.address);
-    setUserCoordinates(coords);
-    alert('Location confirmed and saved!');
-  };
+  // Distance simulation config
 
   useEffect(() => {
     async function fetchData() {
@@ -167,13 +103,11 @@ export default function CustomerDashboard() {
   }, []);
 
   const calculateDistance = (restName: string, restId: string) => {
-    const restCoords = getRestaurantCoords(restName, restId);
-    if (!userCoordinates) {
-      // Return a simulated consistent distance if location isn't confirmed yet
-      const hash = restId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return Number((1.5 + (hash % 4) + ((hash % 10) / 10)).toFixed(1));
-    }
-    return getDistanceInKm(userCoordinates.lat, userCoordinates.lng, restCoords.lat, restCoords.lng);
+    if (restName === 'Royal India') return 1.2;
+    if (restName === 'The Burger Lab') return 2.3;
+    if (restName === 'Taco Fiesta') return 3.5;
+    const hash = restId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return Number((1.5 + (hash % 4) + ((hash % 10) / 10)).toFixed(1));
   };
 
   // Filter & Sort restaurants
@@ -210,43 +144,7 @@ export default function CustomerDashboard() {
         style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})` }}
       />
 
-      {/* Location Selector Bar */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-9 w-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center flex-shrink-0">
-            <MapPin className="h-5 w-5 text-orange-500 animate-bounce" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Deliver To</span>
-            <p className="text-sm font-bold text-slate-800 truncate">
-              {selectedAddress}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <input
-            type="text"
-            value={locationInput}
-            onChange={(e) => setLocationInput(e.target.value)}
-            placeholder="Enter address manually..."
-            className="flex-grow md:w-64 px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-orange-500 bg-slate-50 focus:bg-white text-slate-800"
-          />
-          <button
-            onClick={handleGetCurrentLocation}
-            className="flex items-center gap-1 px-3 py-2 border border-slate-200 hover:border-orange-500 rounded-xl text-xs font-bold text-slate-600 hover:text-orange-500 transition-colors"
-            title="Use Current Location (GPS)"
-          >
-            <Navigation className="h-3.5 w-3.5 animate-pulse" /> Locate Me
-          </button>
-          <button
-            onClick={handleConfirmLocation}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
-          >
-            Confirm
-          </button>
-        </div>
-      </div>
+      {/* Location Selector removed, handled at checkout */}
 
 
       {/* Main Content Area */}
