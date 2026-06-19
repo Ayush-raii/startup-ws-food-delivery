@@ -70,7 +70,74 @@ export default function CustomerDashboard() {
   const [filterVeg, setFilterVeg] = useState(false);
   const [sortBy, setSortBy] = useState<'rating' | 'cost_asc' | 'cost_desc' | 'default'>('default');
 
-  // Distance simulation config
+  // Location Selector States
+  const [selectedAddress, setSelectedAddress] = useState<string>('Select your location');
+  const [userCoordinates, setUserCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user_location');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.address) {
+          setSelectedAddress(parsed.address);
+        }
+        if (parsed.lat && parsed.lng) {
+          setUserCoordinates({ lat: parsed.lat, lng: parsed.lng });
+        }
+      } catch (e) {
+        console.error('Failed to parse saved location from localStorage:', e);
+      }
+    }
+  }, []);
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsLocating(true);
+
+    const geoOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserCoordinates({ lat: latitude, lng: longitude });
+        const address = `GPS Location (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
+        setSelectedAddress(address);
+        
+        const newLocation = {
+          address,
+          lat: latitude,
+          lng: longitude,
+        };
+        localStorage.setItem('user_location', JSON.stringify(newLocation));
+        setIsLocating(false);
+      },
+      (error) => {
+        setIsLocating(false);
+        let errorMsg = 'Unable to retrieve your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = 'Location permission was denied. Please allow location access in your browser settings (click the lock icon in the address bar) to detect your location.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMsg = 'GPS signal not available. Please try again or check your device settings.';
+        } else if (error.code === error.TIMEOUT) {
+          errorMsg = 'Location request timed out. Please try again.';
+        } else {
+          errorMsg += ` ${error.message}`;
+        }
+        alert(errorMsg);
+      },
+      geoOptions
+    );
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -103,11 +170,15 @@ export default function CustomerDashboard() {
   }, []);
 
   const calculateDistance = (restName: string, restId: string) => {
-    if (restName === 'Royal India') return 1.2;
-    if (restName === 'The Burger Lab') return 2.3;
-    if (restName === 'Taco Fiesta') return 3.5;
-    const hash = restId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return Number((1.5 + (hash % 4) + ((hash % 10) / 10)).toFixed(1));
+    const restCoords = getRestaurantCoords(restName, restId);
+    if (!userCoordinates) {
+      if (restName === 'Royal India') return 1.2;
+      if (restName === 'The Burger Lab') return 2.3;
+      if (restName === 'Taco Fiesta') return 3.5;
+      const hash = restId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return Number((1.5 + (hash % 4) + ((hash % 10) / 10)).toFixed(1));
+    }
+    return getDistanceInKm(userCoordinates.lat, userCoordinates.lng, restCoords.lat, restCoords.lng);
   };
 
   // Filter & Sort restaurants
@@ -144,7 +215,38 @@ export default function CustomerDashboard() {
         style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})` }}
       />
 
-      {/* Location Selector removed, handled at checkout */}
+      {/* Location Selector Bar */}
+      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="h-9 w-9 rounded-xl bg-primary-50 text-primary-500 flex items-center justify-center flex-shrink-0">
+            <MapPin className="h-5 w-5 text-primary-500 animate-bounce" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Deliver To</span>
+            <p className="text-sm font-bold text-slate-800 truncate">
+              {selectedAddress}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+          {userCoordinates && (
+            <span className="text-[10px] font-bold text-green-650 bg-green-50 px-2 py-1 rounded-full border border-green-200">
+              GPS Active ({userCoordinates.lat.toFixed(4)}, {userCoordinates.lng.toFixed(4)})
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleGetCurrentLocation}
+            disabled={isLocating}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary-650 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-primary-200 disabled:opacity-50"
+            title="Auto-detect location using device GPS"
+          >
+            <Navigation className={`h-3.5 w-3.5 ${isLocating ? 'animate-spin' : 'animate-pulse'}`} />
+            {isLocating ? 'Locating Device...' : 'Use Current Location'}
+          </button>
+        </div>
+      </div>
 
 
       {/* Main Content Area */}

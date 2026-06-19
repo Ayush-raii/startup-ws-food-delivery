@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Clock, MapPin, Store, ShieldAlert, Phone, Check, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MapPin, Store, ShieldAlert, Phone, Check, RefreshCw } from 'lucide-react';
 
 interface Order {
   _id: string;
@@ -27,40 +27,6 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
   const { id } = params;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [nowTime, setNowTime] = useState<number>(Date.now());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNowTime(Date.now());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const getOrderTimerState = (orderCreatedAt: string) => {
-    const elapsedMs = nowTime - new Date(orderCreatedAt).getTime();
-    const elapsedSec = Math.floor(elapsedMs / 1000);
-    const remainingSec = 600 - elapsedSec; // 10 minutes limit (600 seconds)
-
-    const isUrgent = remainingSec > 0 && remainingSec <= 30; // 30 seconds or less
-    const isExpired = remainingSec <= 0;
-
-    const formattedTime = () => {
-      if (remainingSec <= 0) {
-        return `00:00`;
-      } else {
-        const mins = Math.floor(remainingSec / 60);
-        const secs = remainingSec % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      }
-    };
-
-    return {
-      remainingSec,
-      isUrgent,
-      isExpired,
-      timeStr: formattedTime()
-    };
-  };
 
   async function fetchOrder() {
     try {
@@ -160,40 +126,6 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
               </span>
             </div>
 
-            {/* Live Countdown & Delay Alert */}
-            {['Placed', 'Accepted', 'Preparing'].includes(order.orderStatus) && (() => {
-              const timer = getOrderTimerState(order.createdAt);
-              return (
-                <div className="space-y-4">
-                  {/* Timer Card */}
-                  <div className="bg-slate-50 border border-slate-100 p-4.5 rounded-2xl flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-primary-500 animate-pulse" />
-                      <div>
-                        <span className="block text-xs font-extrabold text-slate-700">Estimated Preparation Time</span>
-                        <span className="block text-[10px] font-bold text-slate-400">Order is being cooked fresh</span>
-                      </div>
-                    </div>
-                    <span className="text-2xl font-black font-mono text-slate-800 tracking-wider">
-                      {timer.timeStr}
-                    </span>
-                  </div>
-
-                  {/* Polite Delay Notification Alert */}
-                  {(timer.isUrgent || timer.isExpired) && (
-                    <div className="bg-amber-50/70 border border-amber-200 p-4.5 rounded-2xl flex gap-3 text-amber-900 shadow-sm animate-pulse">
-                      <span className="text-lg">⏳</span>
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-amber-800">Busy Kitchen Update</h4>
-                        <p className="text-xs font-bold leading-normal text-amber-700">
-                          We notice a slight delay in preparing your order. Our team is working to get it to you as quickly as possible. Your delivery may be a bit late. We apologize for the inconvenience! 🙏
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
 
             {/* Timeline Progress */}
             {order.orderStatus === 'Rejected' ? (

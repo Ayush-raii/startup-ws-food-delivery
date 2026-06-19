@@ -25,6 +25,7 @@ export default function CheckoutPage() {
   const [customAddress, setCustomAddress] = useState('');
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -32,15 +33,36 @@ export default function CheckoutPage() {
       return;
     }
 
+    setIsLocating(true);
+
+    const geoOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         setGpsCoordinates({ lat: latitude, lng: longitude });
         setCustomAddress(`Delivered via GPS Location (Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)})`);
+        setIsLocating(false);
       },
       (error) => {
-        alert('Unable to retrieve your location: ' + error.message);
-      }
+        setIsLocating(false);
+        let errorMsg = 'Unable to retrieve your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = 'Location permission was denied. Please allow location access in your browser settings (click the lock icon in the address bar) to detect your location.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMsg = 'GPS signal not available. Please try again or check your device settings.';
+        } else if (error.code === error.TIMEOUT) {
+          errorMsg = 'Location request timed out. Please try again.';
+        } else {
+          errorMsg += ` ${error.message}`;
+        }
+        alert(errorMsg);
+      },
+      geoOptions
     );
   };
 
@@ -259,9 +281,11 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={handleGetCurrentLocation}
-                    className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-primary-500 rounded-xl text-xs font-bold text-slate-650 hover:text-primary-500 transition-colors bg-white shadow-sm"
+                    disabled={isLocating}
+                    className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-primary-500 rounded-xl text-xs font-bold text-slate-650 hover:text-primary-500 transition-colors bg-white shadow-sm disabled:opacity-50"
                   >
-                    <Navigation className="h-3.5 w-3.5 text-primary-500 animate-pulse" /> Autofill Current Location (GPS)
+                    <Navigation className={`h-3.5 w-3.5 text-primary-500 ${isLocating ? 'animate-spin' : 'animate-pulse'}`} /> 
+                    {isLocating ? 'Detecting Location...' : 'Autofill Current Location (GPS)'}
                   </button>
                   {gpsCoordinates && (
                     <span className="text-[10px] font-bold text-green-650 bg-green-50 px-2 py-1 rounded-full border border-green-200">
