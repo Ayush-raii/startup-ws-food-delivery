@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Lock, Store, ArrowRight, ShieldCheck } from 'lucide-react';
+import { User, Mail, Lock, Store, ArrowRight, ShieldCheck, Navigation } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,10 +13,37 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [restaurantName, setRestaurantName] = useState('');
+  const [restaurantLatitude, setRestaurantLatitude] = useState('28.6139');
+  const [restaurantLongitude, setRestaurantLongitude] = useState('77.2090');
+  const [isLocatingRestaurant, setIsLocatingRestaurant] = useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleGetRestaurantLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+    setIsLocatingRestaurant(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setRestaurantLatitude(position.coords.latitude.toFixed(6));
+        setRestaurantLongitude(position.coords.longitude.toFixed(6));
+        setIsLocatingRestaurant(false);
+      },
+      (error) => {
+        setIsLocatingRestaurant(false);
+        let errorMsg = 'Unable to retrieve location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = 'Location permission was denied. Please allow location access in your browser settings to detect your location.';
+        }
+        alert(errorMsg);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +57,11 @@ export default function RegisterPage() {
         email,
         password,
         role,
-        ...(role === 'owner' ? { restaurantName } : {}),
+        ...(role === 'owner' ? { 
+          restaurantName, 
+          latitude: Number(restaurantLatitude), 
+          longitude: Number(restaurantLongitude) 
+        } : {}),
       };
 
       const res = await fetch('/api/auth/register', {
@@ -181,23 +212,66 @@ export default function RegisterPage() {
 
             {/* Restaurant Name (Conditional for Owner) */}
             {role === 'owner' && (
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Restaurant Name
-                </label>
-                <div className="relative rounded-lg shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Store className="h-5 w-5" />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Restaurant Name
+                  </label>
+                  <div className="relative rounded-lg shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Store className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={restaurantName}
+                      onChange={(e) => setRestaurantName(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-slate-900 text-sm"
+                      placeholder="e.g. Royal Burger Joint"
+                    />
                   </div>
-                  <input
-                    type="text"
-                    required
-                    value={restaurantName}
-                    onChange={(e) => setRestaurantName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-slate-900 text-sm"
-                    placeholder="e.g. Royal Burger Joint"
-                  />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      Latitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={restaurantLatitude}
+                      onChange={(e) => setRestaurantLatitude(e.target.value)}
+                      className="block w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-slate-900 text-sm font-semibold"
+                      placeholder="e.g. 28.6139"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      Longitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      value={restaurantLongitude}
+                      onChange={(e) => setRestaurantLongitude(e.target.value)}
+                      className="block w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-slate-900 text-sm font-semibold"
+                      placeholder="e.g. 77.2090"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGetRestaurantLocation}
+                  disabled={isLocatingRestaurant}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 border border-slate-250 hover:border-primary-500 rounded-xl text-xs font-bold text-slate-700 hover:text-primary-500 transition-colors bg-white shadow-sm disabled:opacity-50"
+                >
+                  <Navigation className={`h-3.5 w-3.5 text-primary-500 ${isLocatingRestaurant ? 'animate-spin' : 'animate-pulse'}`} />
+                  {isLocatingRestaurant ? 'Detecting Location...' : 'Detect Restaurant Location (GPS)'}
+                </button>
               </div>
             )}
 

@@ -41,6 +41,8 @@ export async function seedDatabase(forceReset: boolean = false) {
         bannerImage: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=1200',
         cuisineTags: ['North Indian', 'Mughlai', 'Tandoor'],
         status: 'active',
+        latitude: 28.6139,
+        longitude: 77.2090,
         menu: [
           {
             name: 'Paneer Tikka',
@@ -103,6 +105,8 @@ export async function seedDatabase(forceReset: boolean = false) {
         bannerImage: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=1200',
         cuisineTags: ['Gourmet Burgers', 'American', 'Fast Food'],
         status: 'active',
+        latitude: 28.6250,
+        longitude: 77.2150,
         menu: [
           {
             name: 'Cheesy Fries',
@@ -156,6 +160,8 @@ export async function seedDatabase(forceReset: boolean = false) {
         bannerImage: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&q=80&w=1200',
         cuisineTags: ['Mexican', 'Tex-Mex', 'Tacos'],
         status: 'active',
+        latitude: 28.5950,
+        longitude: 77.1950,
         menu: [
           {
             name: 'Classic Loaded Nachos',

@@ -21,26 +21,6 @@ function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number)
   return Number(d.toFixed(1));
 }
 
-const RESTAURANT_COORDINATES: Record<string, { lat: number; lng: number }> = {
-  'Royal India': { lat: 28.6139, lng: 77.2090 },      // Delhi center
-  'The Burger Lab': { lat: 28.6250, lng: 77.2150 },    // 1.5 km North-East
-  'Taco Fiesta': { lat: 28.5950, lng: 77.1950 },       // 2.5 km South-West
-};
-
-const getRestaurantCoords = (name: string, id: string) => {
-  if (RESTAURANT_COORDINATES[name]) {
-    return RESTAURANT_COORDINATES[name];
-  }
-  // Fallback unique but consistent coordinates based on ID string hash
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const latOffset = (hash % 100) / 1000;
-  const lngOffset = ((hash >> 8) % 100) / 1000;
-  return { lat: 28.6139 + latOffset, lng: 77.2090 + lngOffset };
-};
-
 interface Restaurant {
   _id: string;
   name: string;
@@ -48,6 +28,8 @@ interface Restaurant {
   cuisineTags: string[];
   status: string;
   menu: any[];
+  latitude?: number;
+  longitude?: number;
 }
 
 interface Order {
@@ -169,22 +151,21 @@ export default function CustomerDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const calculateDistance = (restName: string, restId: string) => {
-    const restCoords = getRestaurantCoords(restName, restId);
-    if (!userCoordinates) {
-      if (restName === 'Royal India') return 1.2;
-      if (restName === 'The Burger Lab') return 2.3;
-      if (restName === 'Taco Fiesta') return 3.5;
-      const hash = restId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return Number((1.5 + (hash % 4) + ((hash % 10) / 10)).toFixed(1));
-    }
-    return getDistanceInKm(userCoordinates.lat, userCoordinates.lng, restCoords.lat, restCoords.lng);
+  const calculateDistance = (restaurant: Restaurant) => {
+    const lat2 = restaurant.latitude !== undefined ? restaurant.latitude : 28.6139;
+    const lng2 = restaurant.longitude !== undefined ? restaurant.longitude : 77.2090;
+
+    // Use user coordinates if active, otherwise use Delhi center (28.6139, 77.2090) as fallback
+    const lat1 = userCoordinates ? userCoordinates.lat : 28.6139;
+    const lng1 = userCoordinates ? userCoordinates.lng : 77.2090;
+
+    return getDistanceInKm(lat1, lng1, lat2, lng2);
   };
 
   // Filter & Sort restaurants
   const processedRestaurants = restaurants
     .map(rest => {
-      const distance = calculateDistance(rest.name, rest._id);
+      const distance = calculateDistance(rest);
       return { ...rest, distance };
     })
     .filter((rest) => {

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const body = await req.json();
-    const { name, email, password, role, restaurantName } = body;
+    const { name, email, password, role, restaurantName, latitude, longitude } = body;
 
     if (!name || !email || !password || !role) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
         cuisineTags: ['Fast Food', 'Multi-Cuisine'],
         status: 'pending',
         menu: [], // Empty menu initially
+        latitude: latitude !== undefined ? Number(latitude) : 28.6139,
+        longitude: longitude !== undefined ? Number(longitude) : 77.2090,
       });
 
       await newRestaurant.save();

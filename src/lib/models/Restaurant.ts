@@ -51,6 +51,14 @@ const RestaurantSchema = new Schema(
       enum: ['active', 'inactive', 'pending'],
       default: 'pending',
     },
+    latitude: {
+      type: Number,
+      default: 28.6139,
+    },
+    longitude: {
+      type: Number,
+      default: 77.2090,
+    },
     menu: {
       type: [MenuItemSchema],
       default: [],

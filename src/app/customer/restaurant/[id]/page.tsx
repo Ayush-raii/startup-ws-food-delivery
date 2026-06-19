@@ -24,6 +24,8 @@ interface Restaurant {
   cuisineTags: string[];
   status: string;
   menu: MenuItem[];
+  latitude?: number;
+  longitude?: number;
 }
 
 export default function RestaurantMenuPage({ params }: { params: { id: string } }) {
@@ -34,8 +36,23 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
   const [loading, setLoading] = useState(true);
   const [vegFilter, setVegFilter] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'All' | 'Starters' | 'Main Course' | 'Desserts'>('All');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const { addToCart, updateQuantity, getItemQuantity, cartItems, getCartTotal, clearCart, restaurantId } = useCart();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user_location');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.lat && parsed.lng) {
+          setUserCoords({ lat: parsed.lat, lng: parsed.lng });
+        }
+      } catch (e) {
+        console.error('Failed to parse user location from localStorage:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchRestaurant() {
@@ -53,6 +70,27 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
     }
     fetchRestaurant();
   }, [id]);
+
+  // Distance calculation helper
+  const getDistanceStr = () => {
+    if (!restaurant) return '';
+    const lat2 = restaurant.latitude !== undefined ? restaurant.latitude : 28.6139;
+    const lng2 = restaurant.longitude !== undefined ? restaurant.longitude : 77.2090;
+
+    const lat1 = userCoords ? userCoords.lat : 28.6139;
+    const lng1 = userCoords ? userCoords.lng : 77.2090;
+
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lng2 - lng1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return ` • ${d.toFixed(1)} km away`;
+  };
 
   if (loading) {
     return (
@@ -120,7 +158,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
               </div>
               <div className="h-3 w-px bg-white/30" />
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" /> <span>25-30 mins</span>
+                <Clock className="h-4 w-4" /> <span>25-30 mins{getDistanceStr()}</span>
               </div>
               <div className="h-3 w-px bg-white/30" />
               <span>Free delivery by kitchen staff</span>

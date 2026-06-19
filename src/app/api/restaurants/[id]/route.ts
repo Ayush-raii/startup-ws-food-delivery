@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { name, bannerImage, cuisineTags } = await req.json();
+    const { name, bannerImage, cuisineTags, latitude, longitude } = await req.json();
 
     const restaurant = await Restaurant.findById(id);
     if (!restaurant) {
@@ -49,6 +49,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
     if (cuisineTags !== undefined) {
       restaurant.cuisineTags = Array.isArray(cuisineTags) ? cuisineTags : [];
+    }
+    if (latitude !== undefined) {
+      restaurant.latitude = Number(latitude);
+    }
+    if (longitude !== undefined) {
+      restaurant.longitude = Number(longitude);
     }
 
     await restaurant.save();
