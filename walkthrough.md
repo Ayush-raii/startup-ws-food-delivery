@@ -102,3 +102,46 @@ Follow these steps to test multi-restaurant classification and verify correct en
    - You should only see the Burger Lab delivery task.
    - Enter the Burger Lab order's OTP (retrieved from the customer's tracking screen for that order) to complete the delivery handshake.
 
+---
+
+## 🚀 AI-Powered Menu Scanner & Order Preparation Timers
+
+We have added two key enhancements to streamline the onboarding experience for restaurant merchants and keep both customers and store owners aligned during order preparation:
+
+### 1. AI-Powered Menu Scanner (Restaurant Owner Dashboard)
+- **Backend API Route** (`/api/upload-menu`): Uses the `@google/generative-ai` SDK (`gemini-2.5-flash` model) to extract structured menu data (Items, Categories, Prices, Descriptions, and Veg/Non-Veg type) from physical menu photos.
+- **Robust Exponential Backoff**: Wrapped in a retry handler (up to 5 attempts) starting at 1.5s delay to safely handle the Gemini free tier limit (15 RPM) and recover from `429` (Rate limits) or `503` (Service unavailable) errors.
+- **Frontend Dashboard Tab**: Located in the **Menu** tab. Owners can upload an image or snap a photo of a physical menu. The app shows an interactive loading state: *"AI is scanning your menu, please wait..."*.
+- **Review & Edit Grid**: Once parsed, items populate a responsive preview grid where the owner can modify prices, map categories (`Starters`, `Main Course`, `Desserts`), assign food type (`Veg`/`Non-Veg`/`Unknown`), and edit descriptions before performing a bulk save to the database.
+
+### 2. Order Preparation Timers & Polite Delay Messages
+- **10-Minute Limit**: A strict 10-minute countdown (600 seconds) is calculated from the order placement `createdAt` timestamp.
+- **Restaurant Owner Queue**:
+  - Displays a running `MM:SS` timer on active order cards.
+  - Triggers a visual warning alert when the timer drops below 30 seconds: *"🚨 Urgent! Deliver as soon as possible!"* (with animation).
+  - Displays a delayed alert if the timer drops below 0: *"🚨 Order Delayed! Long delay detected."*
+  - Polling also triggers an alert toast: *"🔔 New Order Placed! Attend immediately."* when a new customer order lands.
+- **Customer Tracking Page**:
+  - Displays a ticking countdown timer of the remaining preparation window.
+  - If the timer drops below 30 seconds or has expired, a polite busy-kitchen notification informs the customer: *"We notice a slight delay in preparing your order. Our team is working to get it to you as quickly as possible. Your delivery may be a bit late. We apologize for the inconvenience! 🙏"*
+
+---
+
+## 🧪 Verification of New Features
+
+### AI Menu Scanner
+1. Log in as a Restaurant Owner (e.g. Royal India).
+2. Go to the **Menu** tab.
+3. Click **Scan Menu Image** and upload a menu photo.
+4. Verify the animated loader is shown. Once done, verify the parsed items are editable inside the review table.
+5. Edit an item's details and category, then click **Confirm & Save Menu** to save it.
+
+### Countdown Timers & Polite Warnings
+1. Log in as a Customer and place an order.
+2. Open the Order Tracking page. Verify that the **Estimated Preparation Time** countdown timer is ticking down from `10:00`.
+3. Log in as the corresponding Owner in another window. Verify that the order card in the Preparation Queue shows the ticking timer.
+4. Let the timer run down. Verify that at `< 00:30` remaining:
+   - The owner card flashes an urgent warning.
+   - The customer tracking page displays the polite delayed notification warning.
+
+

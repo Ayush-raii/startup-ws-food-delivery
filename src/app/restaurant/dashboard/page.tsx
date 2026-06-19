@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Store, Plus, Edit, Trash2, Check, X, ShieldAlert, Phone, Users, UserPlus, Volume2, ShoppingBag, PlusCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { Store, Plus, Edit, Trash2, Check, X, ShieldAlert, Phone, Users, UserPlus, Volume2, ShoppingBag, PlusCircle, AlertCircle, Sparkles, Clock } from 'lucide-react';
 
 interface MenuItem {
   _id: string;
@@ -153,6 +153,62 @@ export default function OwnerDashboard() {
   // Staff assignment selection state
   const [assignedRiderMap, setAssignedRiderMap] = useState<Record<string, string>>({});
 
+  // AI Menu Scanner States
+  const [aiScanning, setAiScanning] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [scannedItems, setScannedItems] = useState<{
+    category: 'Starters' | 'Main Course' | 'Desserts';
+    item_name: string;
+    price: number;
+    description: string;
+    food_type: 'Veg' | 'Non-Veg' | 'Unknown';
+  }[]>([]);
+  const [scannerSuccess, setScannerSuccess] = useState('');
+  const [isSavingScanned, setIsSavingScanned] = useState(false);
+
+  // Smooth ticking for countdown timers
+  const [nowTime, setNowTime] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTime(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Visual warning for new order notification
+  const [showNewOrderToast, setShowNewOrderToast] = useState(false);
+  const [newOrderToastMsg, setNewOrderToastMsg] = useState('');
+
+  // Helper to get order timer state (10 mins = 600s preparation window)
+  const getOrderTimerState = (orderCreatedAt: string) => {
+    const elapsedMs = nowTime - new Date(orderCreatedAt).getTime();
+    const elapsedSec = Math.floor(elapsedMs / 1000);
+    const remainingSec = 600 - elapsedSec; // 10 minutes limit (600 seconds)
+
+    const isUrgent = remainingSec > 0 && remainingSec <= 30; // 30 seconds or less
+    const isExpired = remainingSec <= 0;
+
+    const formattedTime = () => {
+      if (remainingSec <= 0) {
+        const overdueSec = Math.abs(remainingSec);
+        const mins = Math.floor(overdueSec / 60);
+        const secs = overdueSec % 60;
+        return `-${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      } else {
+        const mins = Math.floor(remainingSec / 60);
+        const secs = remainingSec % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+    };
+
+    return {
+      remainingSec,
+      isUrgent,
+      isExpired,
+      timeStr: formattedTime()
+    };
+  };
+
   // Helper to calculate analytics
   const getAnalytics = () => {
     const now = new Date();
@@ -263,6 +319,9 @@ export default function OwnerDashboard() {
           const placedCount = dataOrders.orders.filter((o: Order) => o.orderStatus === 'Placed').length;
           if (placedCount > prevPlacedCount.current) {
             playAudioAlert();
+            setNewOrderToastMsg(`New Order Placed! Attend immediately.`);
+            setShowNewOrderToast(true);
+            setTimeout(() => setShowNewOrderToast(false), 8000);
           }
           prevPlacedCount.current = placedCount;
         }
@@ -367,6 +426,138 @@ export default function OwnerDashboard() {
       loadData(true);
     } catch (err: any) {
       setStaffError(err.message || 'Failed to register rider');
+    }
+  };
+
+  // AI Menu Scanner Handlers
+  const handleMenuImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAiScanning(true);
+    setAiError('');
+    setScannerSuccess('');
+    setScannedItems([]);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64String = reader.result as string;
+        const res = await fetch('/api/upload-menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64String,
+            mimeType: file.type
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to scan menu.');
+        }
+
+        if (data.restaurant_menu && Array.isArray(data.restaurant_menu)) {
+          const normalized = data.restaurant_menu.map((item: any) => {
+            let cat: 'Starters' | 'Main Course' | 'Desserts' = 'Main Course';
+            if (item.category === 'Starters' || item.category === 'Desserts' || item.category === 'Main Course') {
+              cat = item.category;
+            } else if (typeof item.category === 'string') {
+              const lower = item.category.toLowerCase();
+              if (lower.includes('starter') || lower.includes('appetiz') || lower.includes('drink') || lower.includes('beverag') || lower.includes('soup') || lower.includes('mocktail')) {
+                cat = 'Starters';
+              } else if (lower.includes('dessert') || lower.includes('sweet') || lower.includes('ice cream') || lower.includes('cake') || lower.includes('shake')) {
+                cat = 'Desserts';
+              }
+            }
+            return {
+              category: cat,
+              item_name: item.item_name || 'Unnamed Dish',
+              price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
+              description: item.description || '',
+              food_type: item.food_type === 'Veg' || item.food_type === 'Non-Veg' ? item.food_type : 'Unknown'
+            };
+          });
+          setScannedItems(normalized);
+          setScannerSuccess(`AI successfully extracted ${normalized.length} items. Please review and tweak below!`);
+        } else {
+          throw new Error('Menu format from AI did not match expected structure.');
+        }
+      } catch (err: any) {
+        setAiError(err.message || 'An error occurred while scanning.');
+      } finally {
+        setAiScanning(false);
+      }
+    };
+    reader.onerror = () => {
+      setAiError('FileReader failed to read the file.');
+      setAiScanning(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpdateScannedItemField = (index: number, field: string, value: any) => {
+    setScannedItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleDeleteScannedItem = (index: number) => {
+    setScannedItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddScannedRow = () => {
+    setScannedItems(prev => [
+      ...prev,
+      {
+        category: 'Main Course',
+        item_name: '',
+        price: 0,
+        description: '',
+        food_type: 'Unknown'
+      }
+    ]);
+  };
+
+  const handleSaveScannedMenu = async () => {
+    if (scannedItems.length === 0) return;
+    setIsSavingScanned(true);
+    setScannerSuccess('');
+    setAiError('');
+
+    let savedCount = 0;
+    try {
+      for (const item of scannedItems) {
+        const payload = {
+          name: item.item_name || 'Unnamed Item',
+          price: Number(item.price) || 0,
+          description: item.description,
+          category: item.category,
+          isVeg: item.food_type === 'Veg',
+        };
+
+        const res = await fetch(`/api/restaurants/${restaurantId}/menu`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          savedCount++;
+        } else {
+          console.warn(`Failed to save item: ${item.item_name}`);
+        }
+      }
+
+      setScannerSuccess(`Successfully saved ${savedCount} menu items to your catalog!`);
+      setScannedItems([]);
+      loadData(true);
+    } catch (err: any) {
+      setAiError(err.message || 'An error occurred while saving.');
+    } finally {
+      setIsSavingScanned(false);
     }
   };
 
@@ -512,6 +703,26 @@ export default function OwnerDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-5 sm:space-y-8">
       
+      {/* Real-time Order Notification Toast */}
+      {showNewOrderToast && (
+        <div className="fixed top-6 right-6 z-[100] max-w-sm w-full bg-slate-900 border border-slate-750 text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4 animate-bounce">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-primary-600/25 border border-primary-500/25 rounded-xl flex items-center justify-center text-primary-500 animate-pulse flex-shrink-0">
+              <Volume2 className="h-5 w-5 text-primary-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-primary-400">Order Alert</p>
+              <p className="text-sm font-extrabold">{newOrderToastMsg}</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowNewOrderToast(false)} 
+            className="text-slate-400 hover:text-white font-bold text-lg bg-slate-800 hover:bg-slate-700 h-7 w-7 rounded-full flex items-center justify-center"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {/* Header bar */}
       <div className="bg-white border border-slate-100 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -668,6 +879,36 @@ export default function OwnerDashboard() {
                       {order.deliveryAddress}
                     </div>
 
+                    {/* Countdown Timer */}
+                    {['Placed', 'Accepted', 'Preparing'].includes(order.orderStatus) && (() => {
+                      const timer = getOrderTimerState(order.createdAt);
+                      return (
+                        <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                          timer.isExpired 
+                            ? 'bg-red-50 border-red-200 text-red-800 animate-pulse'
+                            : timer.isUrgent
+                            ? 'bg-amber-50 border-amber-350 text-amber-900 animate-bounce'
+                            : 'bg-slate-50 border-slate-100 text-slate-700'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <Clock className={`h-4.5 w-4.5 ${timer.isExpired ? 'text-red-500 animate-spin' : 'text-slate-400'}`} />
+                            <span className="text-xs font-extrabold">
+                              {timer.isExpired 
+                                ? '🚨 Order Delayed! Long delay detected.' 
+                                : timer.isUrgent 
+                                ? '🚨 Urgent! Deliver as soon as possible!' 
+                                : 'Time Remaining to Prepare & Deliver'}
+                            </span>
+                          </div>
+                          <span className={`text-sm font-black font-mono tracking-wider ${
+                            timer.isExpired ? 'text-red-600' : timer.isUrgent ? 'text-amber-700' : 'text-slate-900'
+                          }`}>
+                            {timer.timeStr}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
                     {/* Status Controllers */}
                     <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                       <div className="flex flex-wrap gap-2">
@@ -792,11 +1033,198 @@ export default function OwnerDashboard() {
           </div>
         )
       )}
-
-      {/* 2. MENU CRUD TAB */}
+{/* 2. MENU CRUD TAB */}
       {activeTab === 'menu' && (
         restaurantStatus !== 'active' ? renderLockoutView() : (
           <div className="space-y-6">
+            
+            {/* AI Menu Scanner Section */}
+            <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-primary-500/20 text-primary-300 border border-primary-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      AI Powered
+                    </span>
+                    <h3 className="text-lg font-black tracking-tight flex items-center gap-1.5">
+                      <Sparkles className="h-5 w-5 text-primary-400 animate-pulse" />
+                      AI Restaurant Menu Scanner
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium max-w-xl leading-relaxed">
+                    Instantly extract menu items, categories, and prices from an image of your physical menu instead of manually typing them out.
+                  </p>
+                </div>
+                
+                <label className="bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs px-5 py-3.5 rounded-xl transition-all shadow-md shadow-primary-500/10 hover:shadow-primary-500/25 flex items-center gap-2 cursor-pointer border border-primary-400/25 self-start sm:self-auto">
+                  <PlusCircle className="h-4.5 w-4.5" />
+                  Scan Menu Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleMenuImageUpload}
+                    disabled={aiScanning || isSavingScanned}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Loader */}
+              {aiScanning && (
+                <div className="flex flex-col items-center justify-center py-10 space-y-4 border border-dashed border-slate-700/60 rounded-2xl bg-slate-950/20">
+                  <div className="relative flex items-center justify-center">
+                    <div className="h-10 w-10 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+                    <Sparkles className="h-4 w-4 text-primary-400 absolute animate-ping" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xs font-bold text-slate-200">AI is scanning your menu, please wait...</p>
+                    <p className="text-[10px] text-slate-400 font-semibold animate-pulse">Analyzing menu structure & extracting categories...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Scan Errors */}
+              {aiError && (
+                <div className="p-4 bg-red-500/10 border border-red-500/35 rounded-2xl text-red-300 text-xs font-semibold flex items-center gap-2.5">
+                  <AlertCircle className="h-4.5 w-4.5 text-red-450 flex-shrink-0" />
+                  <span>{aiError}</span>
+                </div>
+              )}
+
+              {/* Scan Success */}
+              {scannerSuccess && (
+                <div className="p-4 bg-green-500/10 border border-green-500/35 rounded-2xl text-green-300 text-xs font-semibold flex items-center gap-2.5">
+                  <Check className="h-4.5 w-4.5 text-green-450 flex-shrink-0" />
+                  <span>{scannerSuccess}</span>
+                </div>
+              )}
+
+              {scannedItems.length > 0 && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                      Extracted Menu Preview (Verify & edit details before saving)
+                    </span>
+                    <button
+                      onClick={handleAddScannedRow}
+                      className="text-xs text-primary-300 hover:text-primary-200 font-extrabold flex items-center gap-1"
+                    >
+                      <Plus className="h-4 w-4" /> Add Item
+                    </button>
+                  </div>
+
+                  {/* Editable Preview Table */}
+                  <div className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950/30 text-slate-300 overflow-x-auto">
+                    <table className="w-full text-left text-xs min-w-[700px]">
+                      <thead>
+                        <tr className="bg-slate-900/60 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+                          <th className="p-3 w-1/4">Item Name *</th>
+                          <th className="p-3 w-20">Price (₹) *</th>
+                          <th className="p-3 w-28">Category *</th>
+                          <th className="p-3 w-28">Food Type</th>
+                          <th className="p-3">Description / Details</th>
+                          <th className="p-3 w-12 text-center">Delete</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/65 font-medium">
+                        {scannedItems.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-900/20">
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                required
+                                value={item.item_name}
+                                onChange={(e) => handleUpdateScannedItemField(idx, 'item_name', e.target.value)}
+                                className="w-full bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-white focus:outline-none focus:border-primary-500 font-bold text-xs"
+                                placeholder="Dish name"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                required
+                                value={item.price}
+                                onChange={(e) => handleUpdateScannedItemField(idx, 'price', parseFloat(e.target.value) || 0)}
+                                className="w-full bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-white focus:outline-none focus:border-primary-500 font-bold text-xs"
+                                placeholder="0"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <select
+                                value={item.category}
+                                onChange={(e) => handleUpdateScannedItemField(idx, 'category', e.target.value)}
+                                className="w-full bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-white focus:outline-none focus:border-primary-500 text-xs bg-slate-950 font-bold"
+                              >
+                                <option value="Starters">Starters</option>
+                                <option value="Main Course">Main Course</option>
+                                <option value="Desserts">Desserts</option>
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <select
+                                value={item.food_type}
+                                onChange={(e) => handleUpdateScannedItemField(idx, 'food_type', e.target.value)}
+                                className="w-full bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-white focus:outline-none focus:border-primary-500 text-xs bg-slate-950 font-bold"
+                              >
+                                <option value="Veg">Veg</option>
+                                <option value="Non-Veg">Non-Veg</option>
+                                <option value="Unknown">Unknown</option>
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={item.description}
+                                onChange={(e) => handleUpdateScannedItemField(idx, 'description', e.target.value)}
+                                className="w-full bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-white focus:outline-none focus:border-primary-500 text-xs font-semibold"
+                                placeholder="E.g., Spiced cottage cheese skewers..."
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteScannedItem(idx)}
+                                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="flex justify-end gap-3 pt-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setScannedItems([])}
+                      className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700/50"
+                    >
+                      Discard Scanner Data
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveScannedMenu}
+                      disabled={isSavingScanned}
+                      className="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-primary-500/15"
+                    >
+                      {isSavingScanned ? (
+                        <>
+                          <div className="h-3.5 w-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                          Saving Menu Items...
+                        </>
+                      ) : (
+                        'Confirm & Save Menu'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-slate-900">Items Catalog</h3>
             <button

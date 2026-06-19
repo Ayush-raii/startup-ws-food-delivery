@@ -214,4 +214,52 @@ We will perform a full walkthrough script covering the entire lifecycle:
 6. **Delivery Handshake**:
    - Log in as Staff. See the active delivery with customer address and Google Maps button.
    - Enter the correct 4-digit OTP. Click "Verify".
-   - Confirm status updates to "Delivered" for Customer, Owner, and Staff.
+   - Verify status updates to "Delivered" for Customer, Owner, and Staff.
+
+---
+
+## AI Menu Scanner & Order Preparation Timers (New Feature)
+
+### 1. Backend AI Menu Scanner Route
+
+#### [NEW] [src/app/api/upload-menu/route.ts](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/api/upload-menu/route.ts)
+- Parse base64/binary image from POST request.
+- Initialize `@google/generative-ai` with `gemini-2.5-flash`.
+- Instruct Gemini via a strict JSON Schema prompt to output categories restricted to `['Starters', 'Main Course', 'Desserts']` (to match the DB constraints) and veg/non-veg flags matching the database.
+- **Exponential Backoff**: Wrap the API call in a `while` loop (up to 5 attempts) to handle status `429` (Rate limit exceeded) and `503` (Service unavailable). Wait duration starts at 1.5s and doubles with each failure.
+
+### 2. Frontend AI Menu Scanner UI Component
+
+#### [MODIFY] [src/app/restaurant/dashboard/page.tsx](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/restaurant/dashboard/page.tsx)
+- Introduce an elegant "AI Menu Scanner" panel inside the Menu Management section.
+- Drag & drop zone or file input to upload PNG/JPEG.
+- Showing clean animated loading spinner: "AI is scanning your menu, please wait...".
+- Editable grid / table to review extracted items: Name, Price, Description, Category (dropdown selection to edit), Food Type (Veg/Non-Veg).
+- "Confirm & Save Menu" button that performs multiple bulk-POST requests (or a bulk endpoint call) to save the parsed items to `/api/restaurants/[id]/menu`.
+
+### 3. Order Countdown Timers & Notifications
+
+#### [MODIFY] [src/app/restaurant/dashboard/page.tsx](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/restaurant/dashboard/page.tsx)
+- Calculate preparation remaining time for each active order (5-minute limit since order placement `createdAt` timestamp).
+- Display countdown in minutes:seconds.
+- **Urgent Warning Alert**: If remaining time is under 30 seconds, display high-priority notification flashing badge: "🚨 Time limit almost up! Prepare & deliver immediately!".
+- **Order Delayed Alert**: If remaining time drops <= 0, display: "🚨 Order Delayed! Long delay detected."
+- **Alert Notification**: On polling new orders in `Placed` state, show visual warning/alert: "🔔 New Order Placed! Attend immediately."
+
+#### [MODIFY] [src/app/order/[id]/page.tsx](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/order/%5Bid%5D/page.tsx)
+- Add countdown timer matching the 5-minute restaurant preparation window.
+- **Polite Customer Delay Message**:
+  - If the timer drops below 30 seconds (or is expired), display a friendly, polite message on the customer's page:
+    *"We notice a slight delay in preparing your order. Our team is working to get it to you as quickly as possible. Your delivery may be a bit late. We apologize for the inconvenience! 🙏"*
+
+---
+
+## Verification Plan for New Features
+
+### Backend AI Scanner Test
+- Mock or simulate Gemini requests with simulated 429/503 responses to verify backoff retry logic.
+
+### UI Integration
+- Test menu scanner upload with sample menu image.
+- Verify that parsed items populate the editable grid. Make edits and save, verifying DB updates.
+- Verify order timer countdowns, and verify that the polite customer warning displays correctly when an order timer drops low.
