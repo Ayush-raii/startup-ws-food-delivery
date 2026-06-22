@@ -17,15 +17,25 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
     return { mock: true };
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for 465, false for other ports
-    auth: {
-      user,
-      pass,
-    },
-  });
+  const transporterOptions: any = host.includes('gmail.com')
+    ? {
+        service: 'gmail',
+        auth: {
+          user,
+          pass,
+        },
+      }
+    : {
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user,
+          pass,
+        },
+      };
+
+  const transporter = nodemailer.createTransport(transporterOptions);
 
   try {
     const info = await transporter.sendMail({

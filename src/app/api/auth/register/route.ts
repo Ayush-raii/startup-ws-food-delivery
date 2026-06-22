@@ -26,7 +26,15 @@ export async function POST(req: NextRequest) {
     // Check if user already exists
     const existingUser = await User.findOne({ email: lowercaseEmail });
     if (existingUser) {
-      return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
+      if (existingUser.isVerified) {
+        return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
+      } else {
+        // Delete the unverified user and their associated restaurant if they are an owner
+        if (existingUser.role === 'owner' && existingUser.associatedRestaurantId) {
+          await Restaurant.deleteOne({ _id: existingUser.associatedRestaurantId });
+        }
+        await User.deleteOne({ _id: existingUser._id });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
