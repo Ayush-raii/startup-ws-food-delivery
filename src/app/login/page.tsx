@@ -147,10 +147,10 @@ export default function LoginPage() {
           <ShieldCheck className="h-7 w-7" />
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Decentral<span className="text-primary-500">Bites</span> Auth
+          Door<span className="text-primary-500">ly</span> Auth
         </h2>
         <p className="mt-2 text-sm text-slate-500 font-medium">
-          Decentralized merchant-managed delivery fleet portal
+          Fast merchant-managed delivery fleet portal
         </p>
       </div>
 

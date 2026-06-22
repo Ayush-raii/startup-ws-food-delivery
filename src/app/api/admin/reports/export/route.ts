@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(csvContent, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename=DecentralBites_Sales_Report_${new Date().toISOString().split('T')[0]}.csv`,
+        'Content-Disposition': `attachment; filename=Doorly_Sales_Report_${new Date().toISOString().split('T')[0]}.csv`,
       },
     });
   } catch (error: any) {

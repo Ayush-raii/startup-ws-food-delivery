@@ -119,7 +119,7 @@ export const Navbar: React.FC = () => {
                 D
               </span>
               <span className="font-extrabold text-xl tracking-tight text-slate-800">
-                Decentral<span className="text-primary-500">Bites</span>
+                Door<span className="text-primary-500">ly</span>
               </span>
             </Link>
             {user && (

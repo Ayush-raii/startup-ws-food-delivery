@@ -1,4 +1,4 @@
-# DecentralBites — Login Credentials & Access Info
+# Doorly — Login Credentials & Access Info
 
 > All demo accounts are seeded automatically. If accounts stop working, click **Reset Database** on the Login page to re-seed them.
 

@@ -5,7 +5,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
   const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'noreply@decentralbites.com';
+  const from = process.env.SMTP_FROM || 'noreply@doorly.app';
 
   if (!host || !user || !pass) {
     console.log(`\n=========================================`);
@@ -29,7 +29,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 
   try {
     const info = await transporter.sendMail({
-      from: `"DecentralBites" <${from}>`,
+      from: `"Doorly" <${from}>`,
       to,
       subject,
       html,

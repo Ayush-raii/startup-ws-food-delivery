@@ -86,10 +86,10 @@ export async function POST(req: NextRequest) {
       try {
         await sendEmail({
           to: lowercaseEmail,
-          subject: 'Verify Your Email — DecentralBites',
+          subject: 'Verify Your Email — Doorly',
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-              <h2 style="color: #ea580c;">DecentralBites Account Verification</h2>
+              <h2 style="color: #ea580c;">Doorly Account Verification</h2>
               <p>Hi ${name},</p>
               <p>Please use the following 6-digit verification code to activate your account:</p>
               <div style="background-color: #f3f4f6; border-radius: 8px; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #1f2937; margin: 20px 0;">

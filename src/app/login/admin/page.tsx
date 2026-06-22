@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
           <ShieldCheck className="h-8 w-8" />
         </div>
         <h2 className="text-3xl font-extrabold text-white tracking-tight">
-          Decentral<span className="text-amber-500">Bites</span> Admin
+          Door<span className="text-amber-500">ly</span> Admin
         </h2>
         <p className="mt-2 text-sm text-slate-400 font-medium">
           Secure Administrative Infrastructure Gate

@@ -100,7 +100,7 @@ export default function RegisterPage() {
           <ShieldCheck className="h-7 w-7" />
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Join Decentral<span className="text-primary-500">Bites</span>
+          Join Door<span className="text-primary-500">ly</span>
         </h2>
         <p className="mt-2 text-sm text-slate-500 font-medium">
           Create an account to start ordering or manage your deliveries

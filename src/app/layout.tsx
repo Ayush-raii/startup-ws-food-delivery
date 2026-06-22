@@ -7,8 +7,8 @@ import { Navbar } from '@/components/Navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'DecentralBites - Merchant-Led Delivery App',
-  description: 'Revolutionary decentralized food delivery platform where restaurants manage and assign their own delivery staff.',
+  title: 'Doorly - Merchant-Led Delivery App',
+  description: 'Doorly — a fast, decentralized food delivery platform where restaurants manage and assign their own delivery staff.',
 };
 
 export default function RootLayout({

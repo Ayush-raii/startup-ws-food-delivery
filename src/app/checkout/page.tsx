@@ -326,7 +326,7 @@ export default function CheckoutPage() {
               <Check className="h-5 w-5 text-primary-600" />
             </div>
             <p className="text-[11px] text-slate-400 leading-normal">
-              Note: Decentralized orders support COD or restaurant-specific terminals handled by the merchant staff. Complete payment upon verification of the secure delivery OTP.
+              Note: Doorly orders support COD or restaurant-specific terminals handled by the merchant staff. Complete payment upon verification of the secure delivery OTP.
             </p>
           </div>
 
