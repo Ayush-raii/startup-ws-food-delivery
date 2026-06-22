@@ -57,6 +57,18 @@ const OrderSchema = new Schema(
       type: String,
       default: null,
     },
+    restaurantRating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+    deliveryRating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
   },
   {
     timestamps: true,

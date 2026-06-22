@@ -75,10 +75,17 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      setSuccess('Account created successfully! Redirecting to login...');
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+      if (data.requiresVerification) {
+        setSuccess('Account created! Please verify your email...');
+        setTimeout(() => {
+          router.push(`/verify?email=${encodeURIComponent(email)}`);
+        }, 1500);
+      } else {
+        setSuccess('Account created successfully! Redirecting to login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 1500);
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

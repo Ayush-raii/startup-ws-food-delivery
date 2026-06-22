@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { dbConnect } from '@/lib/db';
 import { User } from '@/lib/models/User';
 import { Restaurant } from '@/lib/models/Restaurant';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +21,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid registration role' }, { status: 400 });
     }
 
+    const lowercaseEmail = email.toLowerCase().trim();
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: lowercaseEmail });
     if (existingUser) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
     }
@@ -52,15 +55,64 @@ export async function POST(req: NextRequest) {
       associatedRestaurantId = newRestaurant._id;
     }
 
+    // Gmail OTP logic
+    const isGmail = lowercaseEmail.endsWith('@gmail.com');
+    let isVerified = true;
+    let verificationOtp = null;
+    let verificationOtpExpires = null;
+
+    if (isGmail) {
+      isVerified = false;
+      verificationOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date();
+      expiry.setMinutes(expiry.getMinutes() + 15); // 15 mins expiry
+      verificationOtpExpires = expiry;
+    }
+
     const newUser = new User({
       name,
-      email: email.toLowerCase(),
+      email: lowercaseEmail,
       password: hashedPassword,
       role,
       associatedRestaurantId,
+      isVerified,
+      verificationOtp,
+      verificationOtpExpires,
     });
 
     await newUser.save();
+
+    if (isGmail) {
+      try {
+        await sendEmail({
+          to: lowercaseEmail,
+          subject: 'Verify Your Email — DecentralBites',
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+              <h2 style="color: #ea580c;">DecentralBites Account Verification</h2>
+              <p>Hi ${name},</p>
+              <p>Please use the following 6-digit verification code to activate your account:</p>
+              <div style="background-color: #f3f4f6; border-radius: 8px; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #1f2937; margin: 20px 0;">
+                ${verificationOtp}
+              </div>
+              <p style="font-size: 12px; color: #6b7280;">This code is valid for 15 minutes. If you did not register for an account, please ignore this email.</p>
+            </div>
+          `,
+        });
+      } catch (err) {
+        console.error('Failed to send verification email during register:', err);
+      }
+
+      return NextResponse.json(
+        { 
+          message: 'User registered successfully. An OTP has been sent to your Gmail address.', 
+          requiresVerification: true, 
+          email: lowercaseEmail,
+          user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role } 
+        },
+        { status: 201 }
+      );
+    }
 
     return NextResponse.json(
       { message: 'User registered successfully', user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role } },

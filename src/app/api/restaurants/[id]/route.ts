@@ -3,17 +3,37 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import { Restaurant } from '@/lib/models/Restaurant';
+import { Order } from '@/lib/models/Order';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await dbConnect();
     const { id } = params;
-    const restaurant = await Restaurant.findById(id);
+    const restaurant = await Restaurant.findById(id).lean();
     if (!restaurant) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
-    return NextResponse.json({ restaurant });
+
+    // Dynamic rating calculation based on orders
+    const ratedOrders = await Order.find({
+      restaurantId: id,
+      orderStatus: 'Delivered',
+      restaurantRating: { $ne: null }
+    }).lean();
+
+    const totalRatings = ratedOrders.length;
+    const averageRating = totalRatings > 0
+      ? Number((ratedOrders.reduce((sum: number, o: any) => sum + (o.restaurantRating || 0), 0) / totalRatings).toFixed(1))
+      : null;
+
+    const restaurantWithStats = {
+      ...restaurant,
+      averageRating,
+      totalRatings
+    };
+
+    return NextResponse.json({ restaurant: restaurantWithStats });
   } catch (error: any) {
     console.error('Fetch restaurant error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

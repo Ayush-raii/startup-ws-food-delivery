@@ -37,6 +37,18 @@ const UserSchema = new Schema(
       ref: 'Restaurant',
       default: null,
     },
+    isVerified: {
+      type: Boolean,
+      default: true,
+    },
+    verificationOtp: {
+      type: String,
+      default: null,
+    },
+    verificationOtpExpires: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

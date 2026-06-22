@@ -26,6 +26,8 @@ interface Restaurant {
   menu: MenuItem[];
   latitude?: number;
   longitude?: number;
+  averageRating?: number | null;
+  totalRatings?: number;
 }
 
 export default function RestaurantMenuPage({ params }: { params: { id: string } }) {
@@ -156,6 +158,14 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
                   </span>
                 ))}
               </div>
+              {restaurant.averageRating !== undefined && restaurant.averageRating !== null && (
+                <>
+                  <div className="h-3 w-px bg-white/30" />
+                  <span className="flex items-center gap-1 text-amber-400 font-extrabold">
+                    ★ {restaurant.averageRating} <span className="text-xs font-semibold text-white/70">({restaurant.totalRatings} ratings)</span>
+                  </span>
+                </>
+              )}
               <div className="h-3 w-px bg-white/30" />
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" /> <span>25-30 mins{getDistanceStr()}</span>

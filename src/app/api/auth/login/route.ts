@@ -43,6 +43,14 @@ export async function POST(req: NextRequest) {
       if (!isMatch) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
       }
+
+      if (user.isVerified === false) {
+        return NextResponse.json({
+          error: 'Account not verified. Please verify your email first.',
+          requiresVerification: true,
+          email: user.email,
+        }, { status: 403 });
+      }
     }
 
     // Generate JWT Token

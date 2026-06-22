@@ -39,6 +39,13 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.requiresVerification) {
+          setError(data.error || 'Account not verified.');
+          setTimeout(() => {
+            router.push(`/verify?email=${encodeURIComponent(data.email || email)}`);
+          }, 1500);
+          return;
+        }
         throw new Error(data.error || 'Invalid credentials');
       }
 

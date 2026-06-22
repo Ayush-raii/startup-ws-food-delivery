@@ -224,6 +224,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         role: 'customer',
         savedAddresses: ['102, Blue Heights, Park Street, New Delhi', 'Block 4B, Sector 62, Noida'],
         associatedRestaurantId: null,
+        isVerified: true,
       },
       // Admin
       {
@@ -232,6 +233,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         password: adminHashedPassword,
         role: 'admin',
         associatedRestaurantId: null,
+        isVerified: true,
       },
       // Owners
       {
@@ -240,6 +242,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         password: hashedPassword,
         role: 'owner',
         associatedRestaurantId: royalIndia ? royalIndia._id : null,
+        isVerified: true,
       },
       {
         name: 'Burger Lab Owner',
@@ -247,6 +250,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         password: hashedPassword,
         role: 'owner',
         associatedRestaurantId: burgerLab ? burgerLab._id : null,
+        isVerified: true,
       },
       {
         name: 'Taco Fiesta Owner',
@@ -254,6 +258,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         password: hashedPassword,
         role: 'owner',
         associatedRestaurantId: tacoFiesta ? tacoFiesta._id : null,
+        isVerified: true,
       },
       // Rider Staff
       {
@@ -261,18 +266,21 @@ export async function seedDatabase(forceReset: boolean = false) {
         phone: '9876543210',
         role: 'staff',
         associatedRestaurantId: royalIndia ? royalIndia._id : null,
+        isVerified: true,
       },
       {
         name: 'Bob Burger-Rider (Burger Lab)',
         phone: '9876543211',
         role: 'staff',
         associatedRestaurantId: burgerLab ? burgerLab._id : null,
+        isVerified: true,
       },
       {
         name: 'Taco Rider (Taco Fiesta)',
         phone: '9876543212',
         role: 'staff',
         associatedRestaurantId: tacoFiesta ? tacoFiesta._id : null,
+        isVerified: true,
       },
     ];
 

@@ -37,6 +37,58 @@ export default function AdminDashboard() {
   const [sortBy, setSortBy] = useState<'name' | 'orders' | 'revenue' | 'commission'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // CSV Export & Deep-Dive Modal States
+  const [exporting, setExporting] = useState(false);
+  const [selectedRestId, setSelectedRestId] = useState<string | null>(null);
+  const [selectedRestName, setSelectedRestName] = useState<string>('');
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [modalOrders, setModalOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [modalSearch, setModalSearch] = useState('');
+
+  const handleDownloadCSV = async () => {
+    setExporting(true);
+    try {
+      window.location.href = '/api/admin/reports/export';
+    } catch (err) {
+      console.error('CSV download error:', err);
+      alert('Failed to download report.');
+    } finally {
+      setTimeout(() => setExporting(false), 2000);
+    }
+  };
+
+  const handleViewRestaurantOrders = async (id: string, name: string) => {
+    setSelectedRestId(id);
+    setSelectedRestName(name);
+    setShowOrdersModal(true);
+    setLoadingOrders(true);
+    setModalOrders([]);
+    setModalSearch('');
+    try {
+      const res = await fetch(`/api/admin/restaurants/${id}/orders`);
+      const data = await res.json();
+      if (res.ok) {
+        setModalOrders(data.orders || []);
+      } else {
+        alert(data.error || 'Failed to fetch restaurant orders.');
+      }
+    } catch (e) {
+      console.error('Error fetching restaurant orders:', e);
+      alert('Failed to retrieve orders.');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const filteredModalOrders = modalOrders.filter((order: any) => {
+    const searchLower = modalSearch.toLowerCase();
+    const customerName = (order.customerId?.name || '').toLowerCase();
+    const orderStatus = (order.orderStatus || '').toLowerCase();
+    const orderId = (order._id || '').toLowerCase();
+    return customerName.includes(searchLower) || orderStatus.includes(searchLower) || orderId.includes(searchLower);
+  });
+
   const fetchAdminData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -206,12 +258,21 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-3 rounded-xl flex items-center gap-1.5 shadow-lg shadow-amber-500/10 transition-colors"
-        >
-          <Plus className="h-4.5 w-4.5" /> Add New Restaurant
-        </button>
+        <div className="flex gap-2.5 w-full sm:w-auto">
+          <button
+            onClick={handleDownloadCSV}
+            disabled={exporting}
+            className="bg-slate-800 hover:bg-slate-700 text-amber-550 border border-slate-750 font-bold text-xs px-4 py-3 rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <TrendingUp className="h-4.5 w-4.5" /> {exporting ? 'Downloading...' : 'Download CSV Report'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-3 rounded-xl flex items-center gap-1.5 shadow-lg shadow-amber-500/10 transition-colors whitespace-nowrap"
+          >
+            <Plus className="h-4.5 w-4.5" /> Add New Restaurant
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -394,7 +455,13 @@ export default function AdminDashboard() {
 
                     {/* Orders count */}
                     <td className="px-6 py-4 text-slate-700 font-bold text-sm">
-                      {rest.stats.totalOrders}
+                      <button
+                        onClick={() => handleViewRestaurantOrders(rest._id, rest.name)}
+                        className="text-amber-600 hover:text-amber-500 underline font-black text-left focus:outline-none"
+                        title={`Click to view all orders for ${rest.name}`}
+                      >
+                        {rest.stats.totalOrders}
+                      </button>
                     </td>
 
                     {/* Gross Revenue */}
@@ -510,7 +577,13 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-3 gap-2 text-center bg-slate-50/40 p-2.5 rounded-xl border border-slate-100/50">
                   <div>
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Orders</span>
-                    <span className="block text-slate-700 font-bold text-xs mt-0.5">{rest.stats.totalOrders}</span>
+                    <button
+                      onClick={() => handleViewRestaurantOrders(rest._id, rest.name)}
+                      className="block text-amber-600 hover:text-amber-500 underline font-black text-xs mt-0.5 mx-auto focus:outline-none"
+                      title={`Click to view all orders for ${rest.name}`}
+                    >
+                      {rest.stats.totalOrders}
+                    </button>
                   </div>
                   <div>
                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Revenue</span>
@@ -649,6 +722,127 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DETAILED ORDERS DEEP-DIVE MODAL */}
+      {showOrdersModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Restaurant Deep-Dive</span>
+                <h3 className="font-extrabold text-slate-900 text-lg mt-0.5">{selectedRestName} — Detailed Orders</h3>
+              </div>
+              <button
+                onClick={() => { setShowOrdersModal(false); setSelectedRestId(null); }}
+                className="h-9 w-9 rounded-full bg-white border border-slate-200/50 hover:bg-slate-50 text-slate-405 hover:text-slate-600 flex items-center justify-center font-bold text-sm shadow-sm transition-all"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Search Filter */}
+            <div className="px-6 py-3 border-b border-slate-100 bg-white flex items-center justify-between gap-4">
+              <input
+                type="text"
+                value={modalSearch}
+                onChange={(e) => setModalSearch(e.target.value)}
+                placeholder="Search by customer name, status, or order ID..."
+                className="w-full max-w-sm px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 shadow-sm"
+              />
+              <span className="text-[10px] font-bold text-slate-450 uppercase">
+                Total Orders: {modalOrders.length}
+              </span>
+            </div>
+
+            {/* Modal Table Body */}
+            <div className="flex-grow overflow-y-auto p-6">
+              {loadingOrders ? (
+                <div className="flex justify-center items-center py-20 flex-col gap-2">
+                  <RefreshCw className="h-6 w-6 animate-spin text-amber-500" />
+                  <span className="text-xs text-slate-450 font-bold animate-pulse">Loading transaction records...</span>
+                </div>
+              ) : filteredModalOrders.length === 0 ? (
+                <div className="text-center py-20 text-slate-400 font-bold text-sm bg-slate-50/40 rounded-2xl border border-dashed border-slate-205">
+                  No orders found for this restaurant.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                  <table className="w-full text-left text-slate-600 font-semibold text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                        <th className="px-5 py-3">Order ID</th>
+                        <th className="px-5 py-3">Date</th>
+                        <th className="px-5 py-3">Customer Name</th>
+                        <th className="px-5 py-3">Items Purchased</th>
+                        <th className="px-5 py-3">Total Amount</th>
+                        <th className="px-5 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-750">
+                      {filteredModalOrders.map((order: any) => {
+                        const totalQty = order.items
+                          ? order.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
+                          : 0;
+                        const dateStr = order.createdAt
+                          ? new Date(order.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          : 'N/A';
+
+                        return (
+                          <tr key={order._id} className="hover:bg-slate-50/30 transition-colors">
+                            <td className="px-5 py-3.5 font-mono text-[10px] text-slate-400">
+                              #{order._id.substring(18)}
+                            </td>
+                            <td className="px-5 py-3.5 text-slate-550 font-semibold">
+                              {dateStr}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <div>
+                                <span className="font-extrabold text-slate-800 text-xs block">{order.customerId?.name || 'Deleted Account'}</span>
+                                <span className="text-[9px] text-slate-400 block mt-0.5">{order.customerId?.email || 'N/A'}</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <div className="max-w-xs truncate" title={order.items?.map((i: any) => `${i.name} x${i.quantity}`).join(', ')}>
+                                <span className="font-bold text-slate-850 block text-xs">{totalQty} {totalQty === 1 ? 'item' : 'items'}</span>
+                                <span className="text-[10px] text-slate-450 block truncate mt-0.5">
+                                  {order.items?.map((i: any) => i.name).join(', ')}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 font-black text-slate-900 text-xs font-mono">
+                              ₹{order.totalAmount}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                order.orderStatus === 'Delivered' ? 'bg-green-50 border-green-200 text-green-700' :
+                                order.orderStatus === 'Rejected' ? 'bg-red-50 border-red-200 text-red-700' :
+                                'bg-primary-50 border-primary-100 text-primary-700'
+                              }`}>
+                                {order.orderStatus}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end text-xs">
+              <button
+                onClick={() => { setShowOrdersModal(false); setSelectedRestId(null); }}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-850 text-white rounded-xl font-bold transition-all shadow-sm text-xs"
+              >
+                Close View
+              </button>
+            </div>
           </div>
         </div>
       )}

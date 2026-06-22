@@ -19,6 +19,8 @@ interface Order {
     name: string;
     phone: string;
   };
+  restaurantRating?: number | null;
+  deliveryRating?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -186,14 +188,35 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
 
           {/* Delivered Status Note */}
           {order.orderStatus === 'Delivered' && (
-            <div className="bg-green-50 border border-green-200 rounded-3xl p-6 flex gap-3 text-green-800">
-              <Check className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="text-sm font-bold">Delivery Completed Successfully</h3>
-                <p className="text-xs text-green-700/90 leading-normal mt-1">
-                  Your order has been validated and completed via secure handshake. Enjoy your food!
-                </p>
+            <div className="space-y-6">
+              <div className="bg-green-50 border border-green-200 rounded-3xl p-6 flex gap-3 text-green-800">
+                <Check className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-bold">Delivery Completed Successfully</h3>
+                  <p className="text-xs text-green-700/90 leading-normal mt-1">
+                    Your order has been validated and completed via secure handshake. Enjoy your food!
+                  </p>
+                </div>
               </div>
+
+              {/* Order Rating Prompt */}
+              {order.restaurantRating !== undefined && order.restaurantRating !== null &&
+              order.deliveryRating !== undefined && order.deliveryRating !== null ? (
+                <div className="bg-slate-55 text-slate-800 border border-slate-200/50 rounded-3xl p-6 space-y-2.5">
+                  <h3 className="text-sm font-extrabold flex items-center gap-1">
+                    <span className="text-green-600">✓</span> Feedback Submitted
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-normal">
+                    Thank you for your rating. Your feedback helps us maintain secure, high-quality, merchant-fleet delivery.
+                  </p>
+                  <div className="flex gap-4 text-xs font-semibold pt-1 text-slate-600">
+                    <span className="flex items-center gap-1 font-bold">Kitchen: <span className="text-amber-500">{order.restaurantRating} ★</span></span>
+                    <span className="flex items-center gap-1 font-bold">Rider: <span className="text-amber-500">{order.deliveryRating} ★</span></span>
+                  </div>
+                </div>
+              ) : (
+                <OrderRatingForm orderId={order._id} onSubmitted={fetchOrder} />
+              )}
             </div>
           )}
 
@@ -269,5 +292,132 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
       </div>
 
     </div>
+  );
+}
+
+function OrderRatingForm({ orderId, onSubmitted }: { orderId: string; onSubmitted: () => void }) {
+  const [restRating, setRestRating] = useState(0);
+  const [delRating, setDelRating] = useState(0);
+  const [hoverRest, setHoverRest] = useState(0);
+  const [hoverDel, setHoverDel] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (restRating === 0 || delRating === 0) {
+      setError('Please provide a rating for both the restaurant and the delivery rider.');
+      return;
+    }
+    setError('');
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantRating: restRating, deliveryRating: delRating }),
+      });
+      if (res.ok) {
+        onSubmitted();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to submit ratings.');
+      }
+    } catch (err) {
+      setError('Failed to submit ratings. Please check connection.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-5">
+      <div>
+        <h3 className="text-sm font-extrabold text-slate-800">Submit Your Feedback</h3>
+        <p className="text-[11px] text-slate-400 mt-0.5">Please rate the restaurant kitchen quality and the rider delivery promptness.</p>
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold leading-normal">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Restaurant rating */}
+        <div className="space-y-2">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Kitchen Quality
+          </label>
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRestRating(star)}
+                onMouseEnter={() => setHoverRest(star)}
+                onMouseLeave={() => setHoverRest(0)}
+                className="focus:outline-none transition-transform active:scale-95"
+              >
+                <StarIcon filled={star <= (hoverRest || restRating)} size={28} />
+              </button>
+            ))}
+            {restRating > 0 && (
+              <span className="text-xs font-black text-slate-500 ml-2">{restRating}/5</span>
+            )}
+          </div>
+        </div>
+
+        {/* Rider rating */}
+        <div className="space-y-2">
+          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Rider Delivery
+          </label>
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setDelRating(star)}
+                onMouseEnter={() => setHoverDel(star)}
+                onMouseLeave={() => setHoverDel(0)}
+                className="focus:outline-none transition-transform active:scale-95"
+              >
+                <StarIcon filled={star <= (hoverDel || delRating)} size={28} />
+              </button>
+            ))}
+            {delRating > 0 && (
+              <span className="text-xs font-black text-slate-500 ml-2">{delRating}/5</span>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-md text-xs font-bold text-white bg-primary-650 hover:bg-primary-700 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Submitting Feedback...' : 'Submit Ratings'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function StarIcon({ filled, size = 24 }: { filled: boolean; size?: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill={filled ? '#f59e0b' : 'none'}
+      stroke={filled ? '#f59e0b' : '#cbd5e1'}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ width: size, height: size }}
+      className="transition-colors duration-150"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
   );
 }
