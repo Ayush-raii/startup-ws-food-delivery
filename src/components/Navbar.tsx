@@ -91,7 +91,7 @@ export const Navbar: React.FC = () => {
       }
       setNameSuccess('Name updated successfully!');
       setUser({ ...user!, name: data.user.name });
-      
+
       // Delay closing modal slightly so the user sees the success state
       setTimeout(() => {
         setShowProfileModal(false);
@@ -138,9 +138,8 @@ export const Navbar: React.FC = () => {
                   <>
                     <Link
                       href="/customer/dashboard"
-                      className={`text-sm font-medium transition-colors ${
-                        pathname === '/customer/dashboard' ? 'text-primary-600 font-bold' : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                      className={`text-sm font-medium transition-colors ${pathname === '/customer/dashboard' ? 'text-primary-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+                        }`}
                     >
                       Browse
                     </Link>
@@ -176,9 +175,8 @@ export const Navbar: React.FC = () => {
                 {user.role === 'owner' && (
                   <Link
                     href="/restaurant/dashboard"
-                    className={`flex items-center gap-1 text-sm font-semibold transition-colors ${
-                      pathname?.includes('/restaurant/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`flex items-center gap-1 text-sm font-semibold transition-colors ${pathname?.includes('/restaurant/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     <Store className="h-4 w-4" />
                     <span>Dashboard</span>
@@ -189,9 +187,8 @@ export const Navbar: React.FC = () => {
                 {user.role === 'staff' && (
                   <Link
                     href="/staff/dashboard"
-                    className={`flex items-center gap-1 text-sm font-semibold transition-colors ${
-                      pathname?.includes('/staff/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`flex items-center gap-1 text-sm font-semibold transition-colors ${pathname?.includes('/staff/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     <Truck className="h-4 w-4" />
                     <span>Deliveries</span>
@@ -202,9 +199,8 @@ export const Navbar: React.FC = () => {
                 {user.role === 'admin' && (
                   <Link
                     href="/admin/dashboard"
-                    className={`flex items-center gap-1 text-sm font-semibold transition-colors ${
-                      pathname?.includes('/admin/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={`flex items-center gap-1 text-sm font-semibold transition-colors ${pathname?.includes('/admin/dashboard') ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
                     <ShieldAlert className="h-4 w-4" />
                     <span>Admin Portal</span>
@@ -258,7 +254,7 @@ export const Navbar: React.FC = () => {
             {!loading && user?.role === 'customer' && (
               <Link
                 href="/checkout"
-                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors text-sm font-bold"
+                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-600 text-white hover:bg-primary-500 transition-colors text-sm font-bold"
               >
                 <ShoppingBag className="h-4 w-4" />
                 {cartCount > 0 && (

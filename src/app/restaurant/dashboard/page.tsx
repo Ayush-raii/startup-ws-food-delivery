@@ -661,8 +661,8 @@ export default function OwnerDashboard() {
 
       {restaurantStatus !== 'active' && (
         <div className={`p-4.5 rounded-2xl border flex items-center gap-3.5 ${restaurantStatus === 'pending'
-            ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm'
-            : 'bg-red-50 border-red-200 text-red-900 shadow-sm'
+          ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm'
+          : 'bg-red-50 border-red-200 text-red-900 shadow-sm'
           }`}>
           <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${restaurantStatus === 'pending' ? 'bg-amber-500/10 text-amber-600' : 'bg-red-500/10 text-red-600'
             }`}>
@@ -688,8 +688,8 @@ export default function OwnerDashboard() {
         <button
           onClick={() => setActiveTab('orders')}
           className={`pb-3 sm:pb-4 px-2 sm:px-0 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'orders'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            ? 'border-primary-500 text-primary-600'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
           Active Orders ({activeIncomingOrders.length + dispatchedOrders.length})
@@ -697,8 +697,8 @@ export default function OwnerDashboard() {
         <button
           onClick={() => setActiveTab('menu')}
           className={`pb-3 sm:pb-4 px-2 sm:px-0 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'menu'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            ? 'border-primary-500 text-primary-600'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
           Menu ({menuItems.length})
@@ -706,8 +706,8 @@ export default function OwnerDashboard() {
         <button
           onClick={() => setActiveTab('staff')}
           className={`pb-3 sm:pb-4 px-2 sm:px-0 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'staff'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            ? 'border-primary-500 text-primary-600'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
           Riders ({staffList.length})
@@ -715,8 +715,8 @@ export default function OwnerDashboard() {
         <button
           onClick={() => setActiveTab('profile')}
           className={`pb-3 sm:pb-4 px-2 sm:px-0 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === 'profile'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            ? 'border-primary-500 text-primary-600'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
           Profile
@@ -751,8 +751,8 @@ export default function OwnerDashboard() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-bold text-slate-400">Order #{order._id.substring(18)}</span>
                             <span className={`px-2.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${order.orderStatus === 'Placed' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                                order.orderStatus === 'Accepted' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                  'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                              order.orderStatus === 'Accepted' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                'bg-indigo-100 text-indigo-800 border border-indigo-200'
                               }`}>
                               {order.orderStatus === 'Placed' ? 'NEW' : order.orderStatus}
                             </span>
@@ -784,10 +784,10 @@ export default function OwnerDashboard() {
                         const timer = getOrderTimerState(order.createdAt);
                         return (
                           <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${timer.isExpired
-                              ? 'bg-red-50 border-red-200 text-red-800 animate-pulse'
-                              : timer.isUrgent
-                                ? 'bg-amber-50 border-amber-350 text-amber-900 animate-bounce'
-                                : 'bg-slate-50 border-slate-100 text-slate-700'
+                            ? 'bg-red-50 border-red-200 text-red-800 animate-pulse'
+                            : timer.isUrgent
+                              ? 'bg-amber-50 border-amber-350 text-amber-900 animate-bounce'
+                              : 'bg-slate-50 border-slate-100 text-slate-700'
                             }`}>
                             <div className="flex items-center gap-2">
                               <Clock className={`h-4.5 w-4.5 ${timer.isExpired ? 'text-red-500 animate-spin' : 'text-slate-400'}`} />
@@ -966,7 +966,7 @@ export default function OwnerDashboard() {
                         <img src={item.image} alt={item.name} className="object-cover h-full w-full" />
                         <div className="absolute top-2.5 right-2.5 flex gap-1">
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-black text-white ${item.category === 'Starters' ? 'bg-blue-500' :
-                              item.category === 'Main Course' ? 'bg-orange-500' : 'bg-pink-500'
+                            item.category === 'Main Course' ? 'bg-orange-500' : 'bg-pink-500'
                             }`}>
                             {item.category}
                           </span>
