@@ -39,6 +39,11 @@ export default function StaffDashboard() {
   const [errorMap, setErrorMap] = useState<Record<string, string>>({});
   const [successMap, setSuccessMap] = useState<Record<string, string>>({});
   const [staffName, setStaffName] = useState('Rider');
+  const [staffPhone, setStaffPhone] = useState('');
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [phoneSuccess, setPhoneSuccess] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
 
   const fetchRiderData = async (silent = false) => {
@@ -49,6 +54,8 @@ export default function StaffDashboard() {
       if (resMe.ok) {
         const dataMe = await resMe.json();
         setStaffName(dataMe.user.name);
+        setStaffPhone(dataMe.user.phone || '');
+        setNewPhone(dataMe.user.phone || '');
       }
 
       // 2. Fetch assigned orders
@@ -141,24 +148,99 @@ export default function StaffDashboard() {
       <div className="w-full max-w-md space-y-6">
         
         {/* Profile header */}
-        <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600">
-              <Truck className="h-6 w-6" />
+        <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600">
+                <Truck className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rider Companion</span>
+                <h2 className="text-lg font-extrabold text-slate-900 leading-none mt-1">{staffName}</h2>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Phone className="h-3 w-3 text-slate-400" />
+                  {editingPhone ? (
+                    <span className="text-xs text-slate-500 font-semibold">Editing phone...</span>
+                  ) : (
+                    <span className="text-xs text-slate-500 font-semibold">{staffPhone || 'No phone set'}</span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rider Companion</span>
-              <h2 className="text-lg font-extrabold text-slate-900 leading-none mt-1">{staffName}</h2>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setEditingPhone(!editingPhone);
+                  setNewPhone(staffPhone);
+                  setPhoneError('');
+                  setPhoneSuccess('');
+                }}
+                className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold transition-colors"
+              >
+                {editingPhone ? 'Cancel' : 'Edit Phone'}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="p-2.5 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-100 hover:border-red-100 rounded-xl transition-colors"
+                title="Log Out"
+              >
+                <LogOut className="h-4.5 w-4.5" />
+              </button>
             </div>
           </div>
-          
-          <button
-            onClick={handleLogout}
-            className="p-2.5 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-100 hover:border-red-100 rounded-xl transition-colors"
-            title="Log Out"
-          >
-            <LogOut className="h-4.5 w-4.5" />
-          </button>
+
+          {editingPhone && (
+            <div className="pt-2 border-t border-slate-50 space-y-2">
+              {phoneError && (
+                <p className="text-[10px] font-bold text-red-500">{phoneError}</p>
+              )}
+              {phoneSuccess && (
+                <p className="text-[10px] font-bold text-green-600">{phoneSuccess}</p>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  className="flex-grow px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary-500 text-xs font-semibold bg-white text-slate-900"
+                  placeholder="Enter phone number"
+                />
+                <button
+                  onClick={async () => {
+                    setPhoneError('');
+                    setPhoneSuccess('');
+                    if (!newPhone.trim()) {
+                      setPhoneError('Phone number is required');
+                      return;
+                    }
+                    try {
+                      const res = await fetch('/api/auth/me', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: staffName, phone: newPhone.trim() })
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        throw new Error(data.error || 'Failed to update phone');
+                      }
+                      setStaffPhone(data.user.phone || '');
+                      setPhoneSuccess('Phone updated successfully!');
+                      setTimeout(() => {
+                        setEditingPhone(false);
+                        setPhoneSuccess('');
+                      }, 1500);
+                    } catch (err: any) {
+                      setPhoneError(err.message || 'Error updating phone');
+                    }
+                  }}
+                  className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tab Selection */}

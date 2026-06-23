@@ -30,6 +30,7 @@ interface Restaurant {
   menu: any[];
   latitude?: number;
   longitude?: number;
+  averageRating?: number;
 }
 
 interface Order {
@@ -132,8 +133,16 @@ export default function CustomerDashboard() {
 
       return matchesSearch && matchesCategory;
     })
-    // Sort by distance (recommend closest restaurant first)
-    .sort((a, b) => a.distance - b.distance);
+    .sort((a, b) => {
+      if (sortBy === 'rating') {
+        const ratingA = (a as any).averageRating || 0;
+        const ratingB = (b as any).averageRating || 0;
+        if (ratingB !== ratingA) {
+          return ratingB - ratingA;
+        }
+      }
+      return a.distance - b.distance;
+    });
 
   const categories = ['All', 'Starters', 'Main Course', 'Desserts'];
 
@@ -169,6 +178,15 @@ export default function CustomerDashboard() {
                 placeholder="Search restaurants or cuisines..."
               />
             </div>
+
+            <select
+              value={sortBy}
+              onChange={(e: any) => setSortBy(e.target.value)}
+              className="px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-slate-700 text-sm font-bold shadow-sm cursor-pointer"
+            >
+              <option value="default">Nearest First (Distance)</option>
+              <option value="rating">Top Rated (Rating)</option>
+            </select>
           </div>
         </div>
 
@@ -223,7 +241,9 @@ export default function CustomerDashboard() {
                     className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[9px] font-black text-slate-800 shadow-sm sm:top-3 sm:right-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
-                    4.4 ★
+                    {restaurant.averageRating !== null && restaurant.averageRating !== undefined
+                      ? `${restaurant.averageRating} ★`
+                      : 'New ★'}
                   </div>
                 </div>
 

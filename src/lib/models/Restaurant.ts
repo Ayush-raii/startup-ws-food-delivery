@@ -59,6 +59,10 @@ const RestaurantSchema = new Schema(
       type: Number,
       default: 77.2090,
     },
+    ownerPhone: {
+      type: String,
+      default: '',
+    },
     menu: {
       type: [MenuItemSchema],
       default: [],

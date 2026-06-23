@@ -40,35 +40,59 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// Update order status (Owner-only actions)
+// Update order status (Owner status updates, or Customer cancellations)
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await dbConnect();
     const user = getUserFromRequest(req);
 
-    if (!user || user.role !== 'owner') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { status } = await req.json();
-    if (!['Accepted', 'Preparing', 'Rejected'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status update for this action' }, { status: 400 });
-    }
-
     const order = await Order.findById(params.id);
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Check restaurant owner ownership
-    if (order.restaurantId.toString() !== user.associatedRestaurantId) {
+    if (user.role === 'customer') {
+      // Customer cancellation
+      if (status !== 'Rejected') {
+        return NextResponse.json({ error: 'Customers can only cancel (Reject) orders' }, { status: 400 });
+      }
+
+      if (order.customerId.toString() !== user.userId) {
+        return NextResponse.json({ error: 'Forbidden. You do not own this order.' }, { status: 403 });
+      }
+
+      if (!['Placed', 'Accepted'].includes(order.orderStatus)) {
+        return NextResponse.json({ error: 'Cannot cancel order. The kitchen has already started preparing it.' }, { status: 400 });
+      }
+
+      order.orderStatus = 'Rejected';
+      order.cancelledBy = 'customer';
+      await order.save();
+      return NextResponse.json({ message: 'Order cancelled successfully', order });
+    } else if (user.role === 'owner') {
+      if (!['Accepted', 'Preparing', 'Rejected'].includes(status)) {
+        return NextResponse.json({ error: 'Invalid status update for this action' }, { status: 400 });
+      }
+
+      // Check restaurant owner ownership
+      if (order.restaurantId.toString() !== user.associatedRestaurantId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      order.orderStatus = status;
+      if (status === 'Rejected') {
+        order.cancelledBy = 'restaurant';
+      }
+      await order.save();
+      return NextResponse.json({ message: 'Order status updated successfully', order });
+    } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
-    order.orderStatus = status;
-    await order.save();
-
-    return NextResponse.json({ message: 'Order status updated successfully', order });
   } catch (error: any) {
     console.error('Update order status error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

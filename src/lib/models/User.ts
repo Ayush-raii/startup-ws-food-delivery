@@ -49,6 +49,14 @@ const UserSchema = new Schema(
       type: Date,
       default: null,
     },
+    resetOtp: {
+      type: String,
+      default: null,
+    },
+    resetOtpExpires: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const restaurants = await Restaurant.find().lean();
     const orders = await Order.find().lean();
-    const users = await User.find({ role: 'owner' }).select('name email associatedRestaurantId').lean();
+    const users = await User.find({ role: 'owner' }).select('name email phone associatedRestaurantId').lean();
 
     // Map metrics for each restaurant
     const restaurantMetrics = restaurants.map((rest: any) => {
@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
 
       return {
         ...rest,
-        owner: owner ? { name: owner.name, email: owner.email } : { name: 'No Owner Registered', email: 'N/A' },
+        owner: owner 
+          ? { name: owner.name, email: owner.email, phone: owner.phone } 
+          : { name: 'No Owner Registered', email: 'N/A', phone: rest.ownerPhone || 'N/A' },
         stats: {
           totalOrders,
           totalRevenue,
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
     }
 
-    const { name, bannerImage, cuisineTags } = await req.json();
+    const { name, bannerImage, cuisineTags, ownerPhone } = await req.json();
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Restaurant name is required' }, { status: 400 });
@@ -81,6 +83,7 @@ export async function POST(req: NextRequest) {
       cuisineTags: Array.isArray(cuisineTags) ? cuisineTags : ['Fast Food', 'Multi-Cuisine'],
       status: 'active', // Admin created restaurants can start as active
       menu: [],
+      ownerPhone: ownerPhone?.trim() || '',
     });
 
     await newRestaurant.save();

@@ -57,6 +57,7 @@ export default function OwnerDashboard() {
 
   // Owner Profile editing states (within dashboard)
   const [ownerFormName, setOwnerFormName] = useState('');
+  const [ownerFormPhone, setOwnerFormPhone] = useState('');
   const [savingOwner, setSavingOwner] = useState(false);
   const [ownerSuccess, setOwnerSuccess] = useState('');
   const [ownerError, setOwnerError] = useState('');
@@ -120,7 +121,7 @@ export default function OwnerDashboard() {
     }
   };
 
-  const handleUpdateOwnerName = async (e: React.FormEvent) => {
+  const handleUpdateOwnerProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setOwnerError('');
     setOwnerSuccess('');
@@ -128,18 +129,25 @@ export default function OwnerDashboard() {
       setOwnerError('Owner name is required.');
       return;
     }
+    if (!ownerFormPhone.trim()) {
+      setOwnerError('Phone number is required.');
+      return;
+    }
     setSavingOwner(true);
     try {
       const res = await fetch('/api/auth/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: ownerFormName.trim() }),
+        body: JSON.stringify({
+          name: ownerFormName.trim(),
+          phone: ownerFormPhone.trim(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to update profile.');
       }
-      setOwnerSuccess('Profile name updated successfully!');
+      setOwnerSuccess('Profile updated successfully!');
     } catch (err: any) {
       setOwnerError(err.message || 'An error occurred.');
     } finally {
@@ -307,6 +315,7 @@ export default function OwnerDashboard() {
         setRestaurantId(rId);
         if (!silent) {
           setOwnerFormName(dataMe.user.name);
+          setOwnerFormPhone(dataMe.user.phone || '');
         }
 
         // Fetch Restaurant details
@@ -918,7 +927,9 @@ export default function OwnerDashboard() {
                       <div className="text-right">
                         <span className="font-black text-slate-700 block">₹{o.totalAmount}</span>
                         <span className={`text-[9px] font-black uppercase ${o.orderStatus === 'Delivered' ? 'text-green-600' : 'text-red-500'
-                          }`}>{o.orderStatus}</span>
+                          }`}>
+                          {o.orderStatus === 'Rejected' ? 'Cancelled' : o.orderStatus}
+                        </span>
                       </div>
                     </div>
                   ))
@@ -1404,7 +1415,7 @@ export default function OwnerDashboard() {
               </div>
             )}
 
-            <form onSubmit={handleUpdateOwnerName} className="space-y-4 text-xs font-semibold text-slate-600">
+            <form onSubmit={handleUpdateOwnerProfile} className="space-y-4 text-xs font-semibold text-slate-600">
               <div>
                 <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Your Full Name</label>
                 <input
@@ -1412,6 +1423,17 @@ export default function OwnerDashboard() {
                   required
                   value={ownerFormName}
                   onChange={(e) => setOwnerFormName(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-800 text-sm font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Phone Number</label>
+                <input
+                  type="text"
+                  required
+                  value={ownerFormPhone}
+                  onChange={(e) => setOwnerFormPhone(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-800 text-sm font-semibold"
                 />
               </div>

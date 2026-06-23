@@ -24,6 +24,7 @@ export const Navbar: React.FC = () => {
   // Profile Edit Modal States
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState('');
   const [nameSuccess, setNameSuccess] = useState('');
@@ -39,6 +40,12 @@ export const Navbar: React.FC = () => {
           setUser(data.user);
         } else {
           setUser(null);
+          const isPublicPage = ['/login', '/register', '/login/admin', '/forgot-password', '/verify', '/partner/login'].includes(pathname) || pathname.startsWith('/partner/');
+          if ((res.status === 401 || res.status === 404) && !isPublicPage) {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            router.push('/login');
+            router.refresh();
+          }
         }
       } catch (err) {
         console.error('Navbar user fetch failed:', err);
@@ -65,6 +72,7 @@ export const Navbar: React.FC = () => {
   const handleOpenProfileModal = () => {
     if (!user) return;
     setNewName(user.name);
+    setNewPhone(user.phone || '');
     setNameError('');
     setNameSuccess('');
     setShowProfileModal(true);
@@ -78,19 +86,23 @@ export const Navbar: React.FC = () => {
       setNameError('Name is required.');
       return;
     }
+    if (!newPhone.trim()) {
+      setNameError('Phone number is required.');
+      return;
+    }
     setSavingName(true);
     try {
       const res = await fetch('/api/auth/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName }),
+        body: JSON.stringify({ name: newName, phone: newPhone.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to update profile.');
       }
-      setNameSuccess('Name updated successfully!');
-      setUser({ ...user!, name: data.user.name });
+      setNameSuccess('Profile updated successfully!');
+      setUser({ ...user!, name: data.user.name, phone: data.user.phone });
 
       // Delay closing modal slightly so the user sees the success state
       setTimeout(() => {
@@ -408,14 +420,17 @@ export const Navbar: React.FC = () => {
                 </div>
               )}
 
-              {user.phone && (
-                <div>
-                  <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Staff Phone</label>
-                  <div className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-800 text-sm font-medium">
-                    {user.phone}
-                  </div>
-                </div>
-              )}
+              <div>
+                <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-slate-800 text-sm font-semibold"
+                  placeholder="Enter phone number"
+                />
+              </div>
 
               <div>
                 <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Your Full Name</label>

@@ -26,6 +26,8 @@ export default function CheckoutPage() {
   const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [restaurantCoords, setRestaurantCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [deliveryConfig, setDeliveryConfig] = useState<{ deliveryFreeDistance: number; deliveryBaseFee: number; deliveryRatePerKm: number } | null>(null);
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -66,10 +68,74 @@ export default function CheckoutPage() {
     );
   };
 
-  // Price calculations
+  // Distance and delivery fee calculations
+  const getCoordinatesFromAddress = (address: string) => {
+    const match = address.match(/GPS:\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+    if (match) {
+      return { lat: Number(match[1]), lng: Number(match[2]) };
+    }
+    return null;
+  };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const getCurrentCoordinates = () => {
+    if (useCustomAddress) {
+      return gpsCoordinates;
+    }
+    if (user && user.savedAddresses && user.savedAddresses[selectedAddressIndex]) {
+      return getCoordinatesFromAddress(user.savedAddresses[selectedAddressIndex]);
+    }
+    return null;
+  };
+
+  const currentCoords = getCurrentCoordinates();
+
+  const getDeliveryFee = () => {
+    const baseFallback = deliveryConfig ? deliveryConfig.deliveryBaseFee : 40;
+    if (!currentCoords || !restaurantCoords || !deliveryConfig) {
+      return baseFallback;
+    }
+    const dist = calculateDistance(
+      currentCoords.lat,
+      currentCoords.lng,
+      restaurantCoords.lat,
+      restaurantCoords.lng
+    );
+
+    if (dist <= deliveryConfig.deliveryFreeDistance) {
+      return 0; // Free delivery
+    }
+
+    const extraDist = dist - deliveryConfig.deliveryFreeDistance;
+    const computedFee = deliveryConfig.deliveryBaseFee + extraDist * deliveryConfig.deliveryRatePerKm;
+    return Math.round(computedFee);
+  };
+
+  const getDistanceValue = () => {
+    if (!currentCoords || !restaurantCoords) return null;
+    return calculateDistance(
+      currentCoords.lat,
+      currentCoords.lng,
+      restaurantCoords.lat,
+      restaurantCoords.lng
+    );
+  };
+
+  const distanceVal = getDistanceValue();
+  const deliveryFee = getDeliveryFee();
   const subtotal = getCartTotal();
   const gst = Math.round(subtotal * 0.18);
-  const deliveryFee = 40;
   const grandTotal = subtotal + gst + deliveryFee;
 
   useEffect(() => {
@@ -87,6 +153,31 @@ export default function CheckoutPage() {
         }
       } catch (e) {
         console.error('Failed to parse saved location from localStorage:', e);
+      }
+    }
+
+    async function fetchRestaurantAndConfig() {
+      if (!restaurantId) return;
+      try {
+        const [resRest, resConfig] = await Promise.all([
+          fetch(`/api/restaurants/${restaurantId}`),
+          fetch('/api/settings/delivery')
+        ]);
+        if (resRest.ok) {
+          const dataRest = await resRest.json();
+          if (dataRest.restaurant && dataRest.restaurant.latitude && dataRest.restaurant.longitude) {
+            setRestaurantCoords({
+              lat: Number(dataRest.restaurant.latitude),
+              lng: Number(dataRest.restaurant.longitude)
+            });
+          }
+        }
+        if (resConfig.ok) {
+          const dataConfig = await resConfig.json();
+          setDeliveryConfig(dataConfig.config);
+        }
+      } catch (err) {
+        console.error('Failed to load restaurant coordinates or delivery config:', err);
       }
     }
 
@@ -113,6 +204,7 @@ export default function CheckoutPage() {
 
     if (cartItems.length > 0) {
       fetchUser();
+      fetchRestaurantAndConfig();
     } else {
       setLoading(false);
     }
@@ -282,13 +374,13 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={handleGetCurrentLocation}
                     disabled={isLocating}
-                    className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-primary-500 rounded-xl text-xs font-bold text-slate-650 hover:text-primary-500 transition-colors bg-white shadow-sm disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 hover:border-primary-500 rounded-xl text-xs font-bold text-slate-600 hover:text-primary-500 transition-colors bg-white shadow-sm disabled:opacity-50"
                   >
                     <Navigation className={`h-3.5 w-3.5 text-primary-500 ${isLocating ? 'animate-spin' : 'animate-pulse'}`} /> 
                     {isLocating ? 'Detecting Location...' : 'Autofill Current Location (GPS)'}
                   </button>
                   {gpsCoordinates && (
-                    <span className="text-[10px] font-bold text-green-650 bg-green-50 px-2 py-1 rounded-full border border-green-200">
+                    <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-200">
                       GPS Connected ({gpsCoordinates.lat.toFixed(4)}, {gpsCoordinates.lng.toFixed(4)})
                     </span>
                   )}
@@ -371,8 +463,20 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between">
               <span>Merchant Delivery Fee</span>
-              <span className="text-slate-700">₹{deliveryFee}</span>
+              <span className="text-slate-700 font-bold">
+                {deliveryFee === 0 ? (
+                  <span className="text-green-600 font-extrabold bg-green-50 px-2 py-0.5 rounded border border-green-150">Free Delivery</span>
+                ) : (
+                  `₹${deliveryFee}`
+                )}
+              </span>
             </div>
+            {distanceVal !== null && (
+              <div className="text-[10px] text-slate-400 mt-0.5 text-right font-medium">
+                Distance: {distanceVal.toFixed(1)} km 
+                {deliveryConfig && ` (Free up to ${deliveryConfig.deliveryFreeDistance} km, then ₹${deliveryConfig.deliveryRatePerKm}/km)`}
+              </div>
+            )}
             <div className="flex justify-between pt-4 border-t border-slate-100 text-sm font-black text-slate-900">
               <span>Grand Total</span>
               <span>₹{grandTotal}</span>

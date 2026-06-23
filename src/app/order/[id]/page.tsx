@@ -21,6 +21,7 @@ interface Order {
   };
   restaurantRating?: number | null;
   deliveryRating?: number | null;
+  cancelledBy?: 'customer' | 'restaurant' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +30,32 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
   const { id } = params;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+
+  const handleCancelOrder = async () => {
+    if (!confirm('Are you absolutely sure you want to cancel this order?')) {
+      return;
+    }
+    setCancelling(true);
+    setCancelError('');
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Rejected' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to cancel order.');
+      }
+      fetchOrder();
+    } catch (err: any) {
+      setCancelError(err.message || 'Cancellation failed.');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   async function fetchOrder() {
     try {
@@ -119,20 +146,43 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Order ID: #{order._id.substring(18)}</span>
                 <h2 className="text-xl font-extrabold text-slate-950 mt-1">{order.restaurantId.name}</h2>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                order.orderStatus === 'Delivered' ? 'bg-green-50 border border-green-200 text-green-700' :
-                order.orderStatus === 'Rejected' ? 'bg-red-50 border border-red-200 text-red-700' :
-                'bg-primary-50 border border-primary-100 text-primary-700 animate-pulse'
-              }`}>
-                {order.orderStatus}
-              </span>
+              <div className="flex items-center gap-2">
+                {['Placed', 'Accepted'].includes(order.orderStatus) && (
+                  <button
+                    onClick={handleCancelOrder}
+                    disabled={cancelling}
+                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold rounded-xl transition-all disabled:opacity-50"
+                  >
+                    {cancelling ? 'Cancelling...' : 'Cancel Order'}
+                  </button>
+                )}
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                  order.orderStatus === 'Delivered' ? 'bg-green-50 border border-green-200 text-green-700' :
+                  order.orderStatus === 'Rejected' ? 'bg-red-50 border border-red-200 text-red-700' :
+                  'bg-primary-50 border border-primary-100 text-primary-700 animate-pulse'
+                }`}>
+                  {order.orderStatus === 'Rejected' ? 'Cancelled' : order.orderStatus}
+                </span>
+              </div>
             </div>
+
+            {cancelError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold">
+                {cancelError}
+              </div>
+            )}
 
 
             {/* Timeline Progress */}
             {order.orderStatus === 'Rejected' ? (
               <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-medium">
-                We apologize, but the restaurant had to cancel your order. You will be refunded shortly.
+                {order.cancelledBy === 'customer' ? (
+                  "You have cancelled this order."
+                ) : order.cancelledBy === 'restaurant' ? (
+                  "We apologize, but the restaurant had to cancel your order. You will be refunded shortly."
+                ) : (
+                  "This order has been cancelled."
+                )}
               </div>
             ) : (
               <div className="relative pl-6 space-y-8 border-l border-slate-200 ml-4 py-2">
@@ -202,7 +252,7 @@ export default function OrderTrackingPage({ params }: { params: { id: string } }
               {/* Order Rating Prompt */}
               {order.restaurantRating !== undefined && order.restaurantRating !== null &&
               order.deliveryRating !== undefined && order.deliveryRating !== null ? (
-                <div className="bg-slate-55 text-slate-800 border border-slate-200/50 rounded-3xl p-6 space-y-2.5">
+                <div className="bg-slate-50 text-slate-800 border border-slate-200/50 rounded-3xl p-6 space-y-2.5">
                   <h3 className="text-sm font-extrabold flex items-center gap-1">
                     <span className="text-green-600">✓</span> Feedback Submitted
                   </h3>
@@ -318,6 +368,7 @@ function OrderRatingForm({ orderId, onSubmitted }: { orderId: string; onSubmitte
         body: JSON.stringify({ restaurantRating: restRating, deliveryRating: delRating }),
       });
       if (res.ok) {
+        alert('Thank you! Your ratings have been submitted successfully.');
         onSubmitted();
       } else {
         const data = await res.json();
@@ -395,7 +446,7 @@ function OrderRatingForm({ orderId, onSubmitted }: { orderId: string; onSubmitte
         <button
           type="submit"
           disabled={submitting}
-          className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-md text-xs font-bold text-white bg-primary-650 hover:bg-primary-700 transition-colors disabled:opacity-50"
+          className="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-md text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 transition-colors disabled:opacity-50"
         >
           {submitting ? 'Submitting Feedback...' : 'Submit Ratings'}
         </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Store, TrendingUp, DollarSign, Plus, Check, Ban, Trash2, ArrowUpDown, RefreshCw, X, PlusCircle } from 'lucide-react';
+import { ShieldAlert, Store, TrendingUp, DollarSign, Plus, Check, Ban, Trash2, ArrowUpDown, RefreshCw, X, PlusCircle, Phone, Settings } from 'lucide-react';
 
 interface RestaurantMetric {
   _id: string;
@@ -12,6 +12,7 @@ interface RestaurantMetric {
   owner: {
     name: string;
     email: string;
+    phone?: string;
   };
   stats: {
     totalOrders: number;
@@ -25,12 +26,20 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [activeTab, setActiveTab] = useState<'restaurants' | 'delivery'>('restaurants');
+
+  // Delivery Config settings states
+  const [freeDistance, setFreeDistance] = useState(4);
+  const [baseFee, setBaseFee] = useState(40);
+  const [ratePerKm, setRatePerKm] = useState(10);
+  const [updatingConfig, setUpdatingConfig] = useState(false);
 
   // Create Restaurant Modal Form States
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRestName, setNewRestName] = useState('');
   const [newRestBanner, setNewRestBanner] = useState('');
   const [newRestCuisines, setNewRestCuisines] = useState('');
+  const [newRestPhone, setNewRestPhone] = useState('');
   const [creating, setCreating] = useState(false);
 
   // Sorting State
@@ -105,8 +114,51 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchDeliveryConfig = async () => {
+    try {
+      const res = await fetch('/api/settings/delivery');
+      if (res.ok) {
+        const data = await res.json();
+        setFreeDistance(data.config.deliveryFreeDistance);
+        setBaseFee(data.config.deliveryBaseFee);
+        setRatePerKm(data.config.deliveryRatePerKm);
+      }
+    } catch (e) {
+      console.error('Failed to fetch delivery settings:', e);
+    }
+  };
+
+  const handleUpdateDeliveryConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingConfig(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await fetch('/api/settings/delivery', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deliveryFreeDistance: Number(freeDistance),
+          deliveryBaseFee: Number(baseFee),
+          deliveryRatePerKm: Number(ratePerKm)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update delivery settings');
+      }
+      setSuccess('Delivery rates configuration updated successfully!');
+      fetchDeliveryConfig();
+    } catch (err: any) {
+      setError(err.message || 'Settings update failed.');
+    } finally {
+      setUpdatingConfig(false);
+    }
+  };
+
   useEffect(() => {
     fetchAdminData();
+    fetchDeliveryConfig();
   }, []);
 
   const handleUpdateStatus = async (id: string, newStatus: 'active' | 'inactive') => {
@@ -171,6 +223,7 @@ export default function AdminDashboard() {
           name: newRestName.trim(),
           bannerImage: newRestBanner.trim() || undefined,
           cuisineTags: cuisines,
+          ownerPhone: newRestPhone.trim(),
         }),
       });
 
@@ -184,6 +237,7 @@ export default function AdminDashboard() {
       setNewRestName('');
       setNewRestBanner('');
       setNewRestCuisines('');
+      setNewRestPhone('');
       fetchAdminData(true);
     } catch (err: any) {
       setError(err.message || 'Creation failed.');
@@ -328,7 +382,32 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Pending Requests Section */}
+      {/* Tab selection switcher */}
+      <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => { setActiveTab('restaurants'); setError(''); setSuccess(''); }}
+          className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            activeTab === 'restaurants'
+              ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Store className="h-4 w-4" /> Restaurants & Merchants ({restaurants.length})
+        </button>
+        <button
+          onClick={() => { setActiveTab('delivery'); setError(''); setSuccess(''); }}
+          className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            activeTab === 'delivery'
+              ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Settings className="h-4 w-4" /> Delivery Rate Config
+        </button>
+      </div>
+
+      {activeTab === 'restaurants' && (
+        <>
       {restaurants.filter(r => r.status === 'pending').length > 0 && (
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
           <div className="flex items-center gap-2">
@@ -436,9 +515,14 @@ export default function AdminDashboard() {
 
                     {/* Owner Details */}
                     <td className="px-6 py-4">
-                      <div>
+                      <div className="space-y-0.5">
                         <span className="text-slate-800 block font-bold text-xs">{rest.owner.name}</span>
-                        <span className="text-[10px] text-slate-450 font-medium mt-0.5 block">{rest.owner.email}</span>
+                        <span className="text-[10px] text-slate-450 font-medium block">{rest.owner.email}</span>
+                        {rest.owner.phone && (
+                          <span className="text-[10px] text-slate-450 font-semibold flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-slate-400" /> {rest.owner.phone}
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -447,7 +531,7 @@ export default function AdminDashboard() {
                       <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                         rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
                         rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
-                        'bg-slate-100 border-slate-200 text-slate-650'
+                        'bg-slate-100 border-slate-200 text-slate-600'
                       }`}>
                         {rest.status}
                       </span>
@@ -489,7 +573,7 @@ export default function AdminDashboard() {
                             </button>
                             <button
                               onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                              className="bg-red-650 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
+                              className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
                               title="Deny Merchant Store"
                             >
                               <Ban className="h-3 w-3" /> Deny
@@ -501,7 +585,7 @@ export default function AdminDashboard() {
                         {rest.status === 'active' && (
                           <button
                             onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-650 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
                             title="Deactivate Store"
                           >
                             <Ban className="h-3 w-3 text-red-500" /> Deactivate
@@ -560,7 +644,7 @@ export default function AdminDashboard() {
                   <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                     rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
                     rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
-                    'bg-slate-100 border-slate-200 text-slate-650'
+                    'bg-slate-100 border-slate-200 text-slate-600'
                   }`}>
                     {rest.status}
                   </span>
@@ -571,6 +655,11 @@ export default function AdminDashboard() {
                   <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Owner Details</div>
                   <div className="font-bold text-slate-850 text-xs">{rest.owner.name}</div>
                   <div className="text-[10px] text-slate-500 font-medium">{rest.owner.email}</div>
+                  {rest.owner.phone && (
+                    <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                      <Phone className="h-3 w-3 text-slate-400" /> {rest.owner.phone}
+                    </div>
+                  )}
                 </div>
 
                 {/* Stats Grid */}
@@ -609,7 +698,7 @@ export default function AdminDashboard() {
                       </button>
                       <button
                         onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                        className="bg-red-650 hover:bg-red-755 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
+                        className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
                         title="Deny Merchant Store"
                       >
                         <Ban className="h-3 w-3" /> Deny
@@ -621,7 +710,7 @@ export default function AdminDashboard() {
                   {rest.status === 'active' && (
                     <button
                       onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-650 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
                       title="Deactivate Store"
                     >
                       <Ban className="h-3 w-3 text-red-500" /> Deactivate
@@ -653,8 +742,87 @@ export default function AdminDashboard() {
             ))
           )}
         </div>
-
       </div>
+      </>
+      )}
+
+      {activeTab === 'delivery' && (
+        <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6 max-w-xl">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Settings className="h-5 w-5 text-amber-500" />
+              Delivery Rates Configuration
+            </h3>
+            <p className="text-xs text-slate-400 mt-1 leading-normal font-semibold">
+              Adjust parameters below to dynamically calculate delivery fees for customer orders based on GPS distance to the kitchen.
+            </p>
+          </div>
+
+          <form onSubmit={handleUpdateDeliveryConfig} className="space-y-4 text-xs font-semibold text-slate-600">
+            <div>
+              <label className="block text-slate-450 text-[10px] font-bold uppercase tracking-wider mb-1">
+                Free Delivery Distance Limit (KM)
+              </label>
+              <input
+                type="number"
+                required
+                min={0}
+                value={freeDistance}
+                onChange={(e) => setFreeDistance(Number(e.target.value))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
+                placeholder="e.g. 4"
+              />
+              <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">
+                Deliveries within this radius are completely free (₹0).
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-slate-455 text-[10px] font-bold uppercase tracking-wider mb-1">
+                Base Delivery Fee (INR)
+              </label>
+              <input
+                type="number"
+                required
+                min={0}
+                value={baseFee}
+                onChange={(e) => setBaseFee(Number(e.target.value))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
+                placeholder="e.g. 40"
+              />
+              <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">
+                Standard charge applied to orders outside the free delivery range.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-slate-455 text-[10px] font-bold uppercase tracking-wider mb-1">
+                Additional Rate per KM (INR)
+              </label>
+              <input
+                type="number"
+                required
+                min={0}
+                value={ratePerKm}
+                onChange={(e) => setRatePerKm(Number(e.target.value))}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
+                placeholder="e.g. 10"
+              />
+              <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">
+                Extra charge added per additional kilometer beyond the free limit.
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={updatingConfig}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-5 py-3 rounded-xl shadow-md disabled:opacity-50 transition-colors"
+            >
+              {updatingConfig ? 'Updating settings...' : 'Save Configuration'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* CREATE BRAND MODAL */}
       {showAddModal && (
@@ -702,6 +870,17 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewRestCuisines(e.target.value)}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
                   placeholder="e.g. Pizza, Italian, Fast Food"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Owner / Restaurant Phone Number</label>
+                <input
+                  type="text"
+                  value={newRestPhone}
+                  onChange={(e) => setNewRestPhone(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
+                  placeholder="e.g. 9876543210"
                 />
               </div>
 

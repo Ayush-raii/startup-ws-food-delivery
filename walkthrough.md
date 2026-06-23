@@ -144,4 +144,43 @@ We have added two key enhancements to streamline the onboarding experience for r
    - The owner card flashes an urgent warning.
    - The customer tracking page displays the polite delayed notification warning.
 
+---
+
+## 🔒 Professional Authentication, Cancellations, Settings & Ratings (Latest Updates)
+
+We have successfully implemented the following core capabilities:
+
+### 1. Customer-Exclusive Login & Partner Portal
+- **Customer Login** ([/login](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/login/page.tsx)): Customer-only credential fields with a "Forgot Password?" link and a clean, subtle footer link pointing to the partner portal.
+- **Partner Portal** ([/partner/login](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/partner/login/page.tsx)): Features a sleek tab switcher for **Restaurant Owner** and **Delivery Rider**. Also includes quick demo-autofill options.
+
+### 2. Three-Step Password Reset Flow
+- Located at [/forgot-password](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/forgot-password/page.tsx).
+- **Step 1**: User enters their registered email to request a 6-digit verification code.
+- **Step 2**: User enters the verification code received via email.
+- **Step 3**: User defines their new password.
+
+### 3. Settings-Configured Delivery Fees
+- Configurable directly from the **Delivery Rate Config** tab in the Admin Dashboard.
+- Settings are stored in the database via the `SystemSettings` model.
+- **Distance Calculation**: The `/checkout` page fetches coordinates, performs Haversine calculations to measure the distance to the restaurant, and updates pricing using:
+  - Deliveries within **Free Distance Limit** = ₹0.
+  - Deliveries outside: **Base Fee** + **Additional Rate per KM** × (Distance - Free Distance).
+
+### 4. Customer Order Cancellation
+- On [/order/[id]](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/order/[id]/page.tsx), customers can click **Cancel Order** if the kitchen has not set the status to `Preparing` (i.e. only in `Placed` or `Accepted` states).
+- Once clicked, the status shifts to `Rejected` (which is labeled UI-side as `Cancelled`).
+- Cancelled orders appear in the restaurant dashboard, the admin metrics, and are labeled correctly as `Cancelled` in the CSV export report.
+
+### 5. Dynamic Ratings & Sorting
+- Customers can submit ratings/feedback from their tracker view once delivered.
+- Restaurants query automatically computes `averageRating` from delivered rated orders.
+- Customers can toggle between **Nearest First** and **Top Rated** sorting on their dashboard.
+
+### 6. Profile Editing (Phone & Name)
+- Users can access **Manage Profile** in the Navbar, opening a modal to change their name or phone number.
+- Updates are saved to the User collection, and restaurant owners' updated phone numbers automatically sync to the Restaurant collection as `ownerPhone`.
+- Admin dashboard displays the owner's updated phone details in the Merchant Listings table.
+
+
 

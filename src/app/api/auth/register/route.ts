@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const body = await req.json();
-    const { name, email, password, role, restaurantName, latitude, longitude } = body;
+    const { name, email, password, role, restaurantName, latitude, longitude, phone } = body;
 
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password || !role || !phone) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
@@ -22,8 +22,13 @@ export async function POST(req: NextRequest) {
     }
 
     const lowercaseEmail = email.toLowerCase().trim();
+    const cleanedPhone = phone.trim();
 
-    // Check if user already exists
+    if (!cleanedPhone) {
+      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
+    }
+
+    // Check if user already exists by email
     const existingUser = await User.findOne({ email: lowercaseEmail });
     if (existingUser) {
       if (existingUser.isVerified) {
@@ -35,6 +40,12 @@ export async function POST(req: NextRequest) {
         }
         await User.deleteOne({ _id: existingUser._id });
       }
+    }
+
+    // Check if phone number is already registered by another user
+    const existingPhone = await User.findOne({ phone: cleanedPhone });
+    if (existingPhone) {
+      return NextResponse.json({ error: 'Phone number already registered' }, { status: 400 });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -57,6 +68,7 @@ export async function POST(req: NextRequest) {
         menu: [], // Empty menu initially
         latitude: latitude !== undefined ? Number(latitude) : 28.6139,
         longitude: longitude !== undefined ? Number(longitude) : 77.2090,
+        ownerPhone: cleanedPhone,
       });
 
       await newRestaurant.save();
@@ -81,6 +93,7 @@ export async function POST(req: NextRequest) {
       name,
       email: lowercaseEmail,
       password: hashedPassword,
+      phone: cleanedPhone,
       role,
       associatedRestaurantId,
       isVerified,

@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
         cleanCell(order.customerId?.name || 'Deleted Customer'),
         totalItems,
         order.totalAmount,
-        cleanCell(order.orderStatus),
+        cleanCell(order.orderStatus === 'Rejected' ? 'Cancelled' : order.orderStatus),
         commission,
         profit,
       ].join(',');

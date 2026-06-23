@@ -69,6 +69,11 @@ const OrderSchema = new Schema(
       max: 5,
       default: null,
     },
+    cancelledBy: {
+      type: String,
+      enum: ['customer', 'restaurant'],
+      default: null,
+    },
   },
   {
     timestamps: true,

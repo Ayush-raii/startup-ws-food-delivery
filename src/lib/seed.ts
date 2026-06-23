@@ -22,6 +22,10 @@ export async function seedDatabase(forceReset: boolean = false) {
           if (collections.length > 0) {
             await db.collection('orders').drop();
           }
+          const collectionsSettings = await db.listCollections({ name: 'systemsettings' }).toArray();
+          if (collectionsSettings.length > 0) {
+            await db.collection('systemsettings').drop();
+          }
         }
       } catch (e) {}
     } else {
@@ -43,6 +47,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         status: 'active',
         latitude: 28.6139,
         longitude: 77.2090,
+        ownerPhone: '9876543001',
         menu: [
           {
             name: 'Paneer Tikka',
@@ -107,6 +112,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         status: 'active',
         latitude: 28.6250,
         longitude: 77.2150,
+        ownerPhone: '9876543002',
         menu: [
           {
             name: 'Cheesy Fries',
@@ -162,6 +168,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         status: 'active',
         latitude: 28.5950,
         longitude: 77.1950,
+        ownerPhone: '9876543003',
         menu: [
           {
             name: 'Classic Loaded Nachos',
@@ -221,6 +228,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         name: 'Alice Customer',
         email: 'customer@example.com',
         password: hashedPassword,
+        phone: '9998887777',
         role: 'customer',
         savedAddresses: ['102, Blue Heights, Park Street, New Delhi', 'Block 4B, Sector 62, Noida'],
         associatedRestaurantId: null,
@@ -240,6 +248,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         name: 'Royal India Owner',
         email: 'owner@example.com',
         password: hashedPassword,
+        phone: '9876543001',
         role: 'owner',
         associatedRestaurantId: royalIndia ? royalIndia._id : null,
         isVerified: true,
@@ -248,6 +257,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         name: 'Burger Lab Owner',
         email: 'burger_owner@example.com',
         password: hashedPassword,
+        phone: '9876543002',
         role: 'owner',
         associatedRestaurantId: burgerLab ? burgerLab._id : null,
         isVerified: true,
@@ -256,6 +266,7 @@ export async function seedDatabase(forceReset: boolean = false) {
         name: 'Taco Fiesta Owner',
         email: 'taco_owner@example.com',
         password: hashedPassword,
+        phone: '9876543003',
         role: 'owner',
         associatedRestaurantId: tacoFiesta ? tacoFiesta._id : null,
         isVerified: true,
