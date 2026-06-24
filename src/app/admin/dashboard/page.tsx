@@ -29,9 +29,9 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'restaurants' | 'delivery'>('restaurants');
 
   // Delivery Config settings states
-  const [freeDistance, setFreeDistance] = useState(4);
-  const [baseFee, setBaseFee] = useState(40);
-  const [ratePerKm, setRatePerKm] = useState(10);
+  const [freeDistance, setFreeDistance] = useState<number | string>(4);
+  const [baseFee, setBaseFee] = useState<number | string>(40);
+  const [ratePerKm, setRatePerKm] = useState<number | string>(10);
   const [updatingConfig, setUpdatingConfig] = useState(false);
 
   // Create Restaurant Modal Form States
@@ -138,9 +138,9 @@ export default function AdminDashboard() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          deliveryFreeDistance: Number(freeDistance),
-          deliveryBaseFee: Number(baseFee),
-          deliveryRatePerKm: Number(ratePerKm)
+          deliveryFreeDistance: Number(freeDistance) || 0,
+          deliveryBaseFee: Number(baseFee) || 0,
+          deliveryRatePerKm: Number(ratePerKm) || 0
         })
       });
       const data = await res.json();
@@ -299,7 +299,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
+
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl text-white">
         <div className="flex items-center gap-3">
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-black mt-0.5">Administrative Dashboard</h1>
           </div>
         </div>
-        
+
         <div className="flex gap-2.5 w-full sm:w-auto">
           <button
             onClick={handleDownloadCSV}
@@ -386,21 +386,19 @@ export default function AdminDashboard() {
       <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
         <button
           onClick={() => { setActiveTab('restaurants'); setError(''); setSuccess(''); }}
-          className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-            activeTab === 'restaurants'
-              ? 'bg-white text-slate-900 shadow-sm font-extrabold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
+          className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'restaurants'
+            ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+            : 'text-slate-500 hover:text-slate-800'
+            }`}
         >
           <Store className="h-4 w-4" /> Restaurants & Merchants ({restaurants.length})
         </button>
         <button
           onClick={() => { setActiveTab('delivery'); setError(''); setSuccess(''); }}
-          className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-            activeTab === 'delivery'
-              ? 'bg-white text-slate-900 shadow-sm font-extrabold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
+          className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${activeTab === 'delivery'
+            ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+            : 'text-slate-500 hover:text-slate-800'
+            }`}
         >
           <Settings className="h-4 w-4" /> Delivery Rate Config
         </button>
@@ -408,342 +406,340 @@ export default function AdminDashboard() {
 
       {activeTab === 'restaurants' && (
         <>
-      {restaurants.filter(r => r.status === 'pending').length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-            <h2 className="text-xs font-black text-amber-500 uppercase tracking-widest">Pending Registration Requests</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {restaurants.filter(r => r.status === 'pending').map((rest) => (
-              <div key={rest._id} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 flex flex-col justify-between hover:border-slate-700 transition-all">
-                <div className="space-y-3">
-                  <div className="flex gap-3 items-center">
-                    <div className="h-12 w-16 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 flex-shrink-0">
-                      <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-white text-sm leading-tight">{rest.name}</h4>
-                      <span className="text-[10px] text-slate-450 font-bold block mt-1">ID: #{rest._id.substring(18)}</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/50 p-3 rounded-xl space-y-1 text-[11px]">
-                    <span className="block text-slate-400 font-bold uppercase tracking-wider text-[9px]">Merchant Owner</span>
-                    <div className="text-white font-extrabold">{rest.owner.name}</div>
-                    <div className="text-slate-450 truncate">{rest.owner.email}</div>
-                  </div>
-                </div>
-                <div className="flex gap-2.5 pt-2 border-t border-slate-800/60 justify-end">
-                  <button
-                    onClick={() => handleUpdateStatus(rest._id, 'active')}
-                    className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm transition-all"
-                    title="Allow Restaurant Access"
-                  >
-                    <Check className="h-3.5 w-3.5" /> Allow Access
-                  </button>
-                  <button
-                    onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                    className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm transition-all"
-                    title="Deny Restaurant"
-                  >
-                    <Ban className="h-3.5 w-3.5" /> Deny
-                  </button>
-                </div>
+          {restaurants.filter(r => r.status === 'pending').length > 0 && (
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                <h2 className="text-xs font-black text-amber-500 uppercase tracking-widest">Pending Registration Requests</h2>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main Table Panel */}
-      <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <h3 className="font-extrabold text-slate-800 text-sm">Active & Pending Merchant Listings</h3>
-          <button 
-            onClick={() => fetchAdminData(true)}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
-            title="Refresh Analytics Table"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-slate-600 font-semibold text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                <th onClick={() => handleSort('name')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-1">Restaurant name <ArrowUpDown className="h-3 w-3" /></div>
-                </th>
-                <th className="px-6 py-4">Owner details</th>
-                <th className="px-6 py-4">Status</th>
-                <th onClick={() => handleSort('orders')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-1">Orders <ArrowUpDown className="h-3 w-3" /></div>
-                </th>
-                <th onClick={() => handleSort('revenue')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-1">Revenue <ArrowUpDown className="h-3 w-3" /></div>
-                </th>
-                <th onClick={() => handleSort('commission')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <div className="flex items-center gap-1">10% Commission <ArrowUpDown className="h-3 w-3" /></div>
-                </th>
-                <th className="px-6 py-4 text-right">Oversight Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sortedRestaurants.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-400 font-bold">
-                    No restaurant listings found. Add a merchant to begin tracking.
-                  </td>
-                </tr>
-              ) : (
-                sortedRestaurants.map((rest) => (
-                  <tr key={rest._id} className="hover:bg-slate-50/50 transition-colors">
-                    {/* Brand Banner + Name */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {restaurants.filter(r => r.status === 'pending').map((rest) => (
+                  <div key={rest._id} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 flex flex-col justify-between hover:border-slate-700 transition-all">
+                    <div className="space-y-3">
+                      <div className="flex gap-3 items-center">
+                        <div className="h-12 w-16 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 flex-shrink-0">
                           <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
                         </div>
                         <div>
-                          <span className="font-extrabold text-slate-800 text-sm block leading-none">{rest.name}</span>
-                          <span className="text-[9px] text-slate-400 font-medium block mt-1">ID: #{rest._id.substring(18)}</span>
+                          <h4 className="font-extrabold text-white text-sm leading-tight">{rest.name}</h4>
+                          <span className="text-[10px] text-slate-450 font-bold block mt-1">ID: #{rest._id.substring(18)}</span>
                         </div>
                       </div>
-                    </td>
-
-                    {/* Owner Details */}
-                    <td className="px-6 py-4">
-                      <div className="space-y-0.5">
-                        <span className="text-slate-800 block font-bold text-xs">{rest.owner.name}</span>
-                        <span className="text-[10px] text-slate-450 font-medium block">{rest.owner.email}</span>
-                        {rest.owner.phone && (
-                          <span className="text-[10px] text-slate-450 font-semibold flex items-center gap-1">
-                            <Phone className="h-3 w-3 text-slate-400" /> {rest.owner.phone}
-                          </span>
-                        )}
+                      <div className="bg-slate-900/50 p-3 rounded-xl space-y-1 text-[11px]">
+                        <span className="block text-slate-400 font-bold uppercase tracking-wider text-[9px]">Merchant Owner</span>
+                        <div className="text-white font-extrabold">{rest.owner.name}</div>
+                        <div className="text-slate-450 truncate">{rest.owner.email}</div>
                       </div>
-                    </td>
-
-                    {/* Status badge */}
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                        rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
-                        rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
-                        'bg-slate-100 border-slate-200 text-slate-600'
-                      }`}>
-                        {rest.status}
-                      </span>
-                    </td>
-
-                    {/* Orders count */}
-                    <td className="px-6 py-4 text-slate-700 font-bold text-sm">
-                      <button
-                        onClick={() => handleViewRestaurantOrders(rest._id, rest.name)}
-                        className="text-amber-600 hover:text-amber-500 underline font-black text-left focus:outline-none"
-                        title={`Click to view all orders for ${rest.name}`}
-                      >
-                        {rest.stats.totalOrders}
-                      </button>
-                    </td>
-
-                    {/* Gross Revenue */}
-                    <td className="px-6 py-4 text-slate-900 font-black text-sm">
-                      ₹{rest.stats.totalRevenue.toLocaleString()}
-                    </td>
-
-                    {/* 10% commission */}
-                    <td className="px-6 py-4 text-amber-600 font-black text-sm">
-                      ₹{rest.stats.commission.toLocaleString()}
-                    </td>
-
-                    {/* Control Buttons */}
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex gap-2.5 justify-end">
-                        {/* Approve Accept for Pending */}
-                        {rest.status === 'pending' && (
-                          <div className="flex gap-1.5 justify-end">
-                            <button
-                              onClick={() => handleUpdateStatus(rest._id, 'active')}
-                              className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
-                              title="Allow Access to Merchant Store"
-                            >
-                              <Check className="h-3 w-3" /> Access
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                              className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
-                              title="Deny Merchant Store"
-                            >
-                              <Ban className="h-3 w-3" /> Deny
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Block/Deactivate for Active */}
-                        {rest.status === 'active' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-                            title="Deactivate Store"
-                          >
-                            <Ban className="h-3 w-3 text-red-500" /> Deactivate
-                          </button>
-                        )}
-
-                        {/* Reactivate for Inactive */}
-                        {rest.status === 'inactive' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rest._id, 'active')}
-                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-                            title="Re-activate Store"
-                          >
-                            <Check className="h-3 w-3 text-green-400" /> Activate
-                          </button>
-                        )}
-
-                        {/* Delete Store */}
-                        <button
-                          onClick={() => handleDeleteRestaurant(rest._id, rest.name)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-1.5 rounded-lg"
-                          title="Permanently Remove Store"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Grid/Card View */}
-        <div className="block md:hidden divide-y divide-slate-100">
-          {sortedRestaurants.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 font-bold text-xs">
-              No restaurant listings found. Add a merchant to begin tracking.
-            </div>
-          ) : (
-            sortedRestaurants.map((rest) => (
-              <div key={rest._id} className="p-5 space-y-4">
-                {/* Brand and Status */}
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-14 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
-                      <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
                     </div>
-                    <div>
-                      <span className="font-extrabold text-slate-850 text-sm block leading-none">{rest.name}</span>
-                      <span className="text-[9px] text-slate-400 font-medium block mt-1">ID: #{rest._id.substring(18)}</span>
-                    </div>
-                  </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                    rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
-                    rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
-                    'bg-slate-100 border-slate-200 text-slate-600'
-                  }`}>
-                    {rest.status}
-                  </span>
-                </div>
-
-                {/* Owner details */}
-                <div className="bg-slate-50/70 p-3 rounded-xl text-slate-600 space-y-0.5">
-                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Owner Details</div>
-                  <div className="font-bold text-slate-850 text-xs">{rest.owner.name}</div>
-                  <div className="text-[10px] text-slate-500 font-medium">{rest.owner.email}</div>
-                  {rest.owner.phone && (
-                    <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
-                      <Phone className="h-3 w-3 text-slate-400" /> {rest.owner.phone}
-                    </div>
-                  )}
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-2 text-center bg-slate-50/40 p-2.5 rounded-xl border border-slate-100/50">
-                  <div>
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Orders</span>
-                    <button
-                      onClick={() => handleViewRestaurantOrders(rest._id, rest.name)}
-                      className="block text-amber-600 hover:text-amber-500 underline font-black text-xs mt-0.5 mx-auto focus:outline-none"
-                      title={`Click to view all orders for ${rest.name}`}
-                    >
-                      {rest.stats.totalOrders}
-                    </button>
-                  </div>
-                  <div>
-                    <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Revenue</span>
-                    <span className="block text-slate-950 font-black text-xs mt-0.5">₹{rest.stats.totalRevenue.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[8px] font-black text-slate-450 uppercase tracking-wider">Commission</span>
-                    <span className="block text-amber-600 font-black text-xs mt-0.5">₹{rest.stats.commission.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {/* Control Actions */}
-                <div className="flex gap-2 justify-end pt-1">
-                  {/* Approve Accept/Deny for Pending */}
-                  {rest.status === 'pending' && (
-                    <>
+                    <div className="flex gap-2.5 pt-2 border-t border-slate-800/60 justify-end">
                       <button
                         onClick={() => handleUpdateStatus(rest._id, 'active')}
-                        className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
-                        title="Allow Access to Merchant Store"
+                        className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm transition-all"
+                        title="Allow Restaurant Access"
                       >
-                        <Check className="h-3 w-3" /> Access
+                        <Check className="h-3.5 w-3.5" /> Allow Access
                       </button>
                       <button
                         onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                        className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
-                        title="Deny Merchant Store"
+                        className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm transition-all"
+                        title="Deny Restaurant"
                       >
-                        <Ban className="h-3 w-3" /> Deny
+                        <Ban className="h-3.5 w-3.5" /> Deny
                       </button>
-                    </>
-                  )}
-
-                  {/* Block/Deactivate for Active */}
-                  {rest.status === 'active' && (
-                    <button
-                      onClick={() => handleUpdateStatus(rest._id, 'inactive')}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-                      title="Deactivate Store"
-                    >
-                      <Ban className="h-3 w-3 text-red-500" /> Deactivate
-                    </button>
-                  )}
-
-                  {/* Reactivate for Inactive */}
-                  {rest.status === 'inactive' && (
-                    <button
-                      onClick={() => handleUpdateStatus(rest._id, 'active')}
-                      className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
-                      title="Re-activate Store"
-                    >
-                      <Check className="h-3 w-3 text-green-400" /> Activate
-                    </button>
-                  )}
-
-                  {/* Delete Store */}
-                  <button
-                    onClick={() => handleDeleteRestaurant(rest._id, rest.name)}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-1.5 rounded-lg"
-                    title="Permanently Remove Store"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))
+            </div>
           )}
-        </div>
-      </div>
-      </>
+
+          {/* Main Table Panel */}
+          <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="font-extrabold text-slate-800 text-sm">Active & Pending Merchant Listings</h3>
+              <button
+                onClick={() => fetchAdminData(true)}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
+                title="Refresh Analytics Table"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-slate-600 font-semibold text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <th onClick={() => handleSort('name')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <div className="flex items-center gap-1">Restaurant name <ArrowUpDown className="h-3 w-3" /></div>
+                    </th>
+                    <th className="px-6 py-4">Owner details</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th onClick={() => handleSort('orders')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <div className="flex items-center gap-1">Orders <ArrowUpDown className="h-3 w-3" /></div>
+                    </th>
+                    <th onClick={() => handleSort('revenue')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <div className="flex items-center gap-1">Revenue <ArrowUpDown className="h-3 w-3" /></div>
+                    </th>
+                    <th onClick={() => handleSort('commission')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <div className="flex items-center gap-1">10% Commission <ArrowUpDown className="h-3 w-3" /></div>
+                    </th>
+                    <th className="px-6 py-4 text-right">Oversight Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {sortedRestaurants.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-12 text-slate-400 font-bold">
+                        No restaurant listings found. Add a merchant to begin tracking.
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedRestaurants.map((rest) => (
+                      <tr key={rest._id} className="hover:bg-slate-50/50 transition-colors">
+                        {/* Brand Banner + Name */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
+                              <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
+                            </div>
+                            <div>
+                              <span className="font-extrabold text-slate-800 text-sm block leading-none">{rest.name}</span>
+                              <span className="text-[9px] text-slate-400 font-medium block mt-1">ID: #{rest._id.substring(18)}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Owner Details */}
+                        <td className="px-6 py-4">
+                          <div className="space-y-0.5">
+                            <span className="text-slate-800 block font-bold text-xs">{rest.owner.name}</span>
+                            <span className="text-[10px] text-slate-450 font-medium block">{rest.owner.email}</span>
+                            {rest.owner.phone && (
+                              <span className="text-[10px] text-slate-450 font-semibold flex items-center gap-1">
+                                <Phone className="h-3 w-3 text-slate-400" /> {rest.owner.phone}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Status badge */}
+                        <td className="px-6 py-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
+                            rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
+                              'bg-slate-100 border-slate-200 text-slate-600'
+                            }`}>
+                            {rest.status}
+                          </span>
+                        </td>
+
+                        {/* Orders count */}
+                        <td className="px-6 py-4 text-slate-700 font-bold text-sm">
+                          <button
+                            onClick={() => handleViewRestaurantOrders(rest._id, rest.name)}
+                            className="text-amber-600 hover:text-amber-500 underline font-black text-left focus:outline-none"
+                            title={`Click to view all orders for ${rest.name}`}
+                          >
+                            {rest.stats.totalOrders}
+                          </button>
+                        </td>
+
+                        {/* Gross Revenue */}
+                        <td className="px-6 py-4 text-slate-900 font-black text-sm">
+                          ₹{rest.stats.totalRevenue.toLocaleString()}
+                        </td>
+
+                        {/* 10% commission */}
+                        <td className="px-6 py-4 text-amber-600 font-black text-sm">
+                          ₹{rest.stats.commission.toLocaleString()}
+                        </td>
+
+                        {/* Control Buttons */}
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex gap-2.5 justify-end">
+                            {/* Approve Accept for Pending */}
+                            {rest.status === 'pending' && (
+                              <div className="flex gap-1.5 justify-end">
+                                <button
+                                  onClick={() => handleUpdateStatus(rest._id, 'active')}
+                                  className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
+                                  title="Allow Access to Merchant Store"
+                                >
+                                  <Check className="h-3 w-3" /> Access
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                                  className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-colors"
+                                  title="Deny Merchant Store"
+                                >
+                                  <Ban className="h-3 w-3" /> Deny
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Block/Deactivate for Active */}
+                            {rest.status === 'active' && (
+                              <button
+                                onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                                title="Deactivate Store"
+                              >
+                                <Ban className="h-3 w-3 text-red-500" /> Deactivate
+                              </button>
+                            )}
+
+                            {/* Reactivate for Inactive */}
+                            {rest.status === 'inactive' && (
+                              <button
+                                onClick={() => handleUpdateStatus(rest._id, 'active')}
+                                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                                title="Re-activate Store"
+                              >
+                                <Check className="h-3 w-3 text-green-400" /> Activate
+                              </button>
+                            )}
+
+                            {/* Delete Store */}
+                            <button
+                              onClick={() => handleDeleteRestaurant(rest._id, rest.name)}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-1.5 rounded-lg"
+                              title="Permanently Remove Store"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Grid/Card View */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {sortedRestaurants.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 font-bold text-xs">
+                  No restaurant listings found. Add a merchant to begin tracking.
+                </div>
+              ) : (
+                sortedRestaurants.map((rest) => (
+                  <div key={rest._id} className="p-5 space-y-4">
+                    {/* Brand and Status */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-14 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
+                          <img src={rest.bannerImage} alt={rest.name} className="object-cover h-full w-full" onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200' }} />
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-slate-850 text-sm block leading-none">{rest.name}</span>
+                          <span className="text-[9px] text-slate-400 font-medium block mt-1">ID: #{rest._id.substring(18)}</span>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${rest.status === 'active' ? 'bg-green-50 border-green-200 text-green-700' :
+                        rest.status === 'pending' ? 'bg-orange-50 border-orange-200 text-orange-700 animate-pulse' :
+                          'bg-slate-100 border-slate-200 text-slate-600'
+                        }`}>
+                        {rest.status}
+                      </span>
+                    </div>
+
+                    {/* Owner details */}
+                    <div className="bg-slate-50/70 p-3 rounded-xl text-slate-600 space-y-0.5">
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Owner Details</div>
+                      <div className="font-bold text-slate-850 text-xs">{rest.owner.name}</div>
+                      <div className="text-[10px] text-slate-500 font-medium">{rest.owner.email}</div>
+                      {rest.owner.phone && (
+                        <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                          <Phone className="h-3 w-3 text-slate-400" /> {rest.owner.phone}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-3 gap-2 text-center bg-slate-50/40 p-2.5 rounded-xl border border-slate-100/50">
+                      <div>
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Orders</span>
+                        <button
+                          onClick={() => handleViewRestaurantOrders(rest._id, rest.name)}
+                          className="block text-amber-600 hover:text-amber-500 underline font-black text-xs mt-0.5 mx-auto focus:outline-none"
+                          title={`Click to view all orders for ${rest.name}`}
+                        >
+                          {rest.stats.totalOrders}
+                        </button>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider">Revenue</span>
+                        <span className="block text-slate-950 font-black text-xs mt-0.5">₹{rest.stats.totalRevenue.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-black text-slate-450 uppercase tracking-wider">Commission</span>
+                        <span className="block text-amber-600 font-black text-xs mt-0.5">₹{rest.stats.commission.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Control Actions */}
+                    <div className="flex gap-2 justify-end pt-1">
+                      {/* Approve Accept/Deny for Pending */}
+                      {rest.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleUpdateStatus(rest._id, 'active')}
+                            className="bg-green-600 hover:bg-green-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
+                            title="Allow Access to Merchant Store"
+                          >
+                            <Check className="h-3 w-3" /> Access
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                            className="bg-red-600 hover:bg-red-700 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm"
+                            title="Deny Merchant Store"
+                          >
+                            <Ban className="h-3 w-3" /> Deny
+                          </button>
+                        </>
+                      )}
+
+                      {/* Block/Deactivate for Active */}
+                      {rest.status === 'active' && (
+                        <button
+                          onClick={() => handleUpdateStatus(rest._id, 'inactive')}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                          title="Deactivate Store"
+                        >
+                          <Ban className="h-3 w-3 text-red-500" /> Deactivate
+                        </button>
+                      )}
+
+                      {/* Reactivate for Inactive */}
+                      {rest.status === 'inactive' && (
+                        <button
+                          onClick={() => handleUpdateStatus(rest._id, 'active')}
+                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"
+                          title="Re-activate Store"
+                        >
+                          <Check className="h-3 w-3 text-green-400" /> Activate
+                        </button>
+                      )}
+
+                      {/* Delete Store */}
+                      <button
+                        onClick={() => handleDeleteRestaurant(rest._id, rest.name)}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-1.5 rounded-lg"
+                        title="Permanently Remove Store"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       {activeTab === 'delivery' && (
@@ -768,7 +764,7 @@ export default function AdminDashboard() {
                 required
                 min={0}
                 value={freeDistance}
-                onChange={(e) => setFreeDistance(Number(e.target.value))}
+                onChange={(e) => { const v = e.target.value; setFreeDistance(v === '' ? '' : Number(v)); }}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
                 placeholder="e.g. 4"
               />
@@ -786,7 +782,7 @@ export default function AdminDashboard() {
                 required
                 min={0}
                 value={baseFee}
-                onChange={(e) => setBaseFee(Number(e.target.value))}
+                onChange={(e) => { const v = e.target.value; setBaseFee(v === '' ? '' : Number(v)); }}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
                 placeholder="e.g. 40"
               />
@@ -804,7 +800,7 @@ export default function AdminDashboard() {
                 required
                 min={0}
                 value={ratePerKm}
-                onChange={(e) => setRatePerKm(Number(e.target.value))}
+                onChange={(e) => { const v = e.target.value; setRatePerKm(v === '' ? '' : Number(v)); }}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-800 text-sm font-semibold"
                 placeholder="e.g. 10"
               />
@@ -837,7 +833,7 @@ export default function AdminDashboard() {
                 <X className="h-4.5 w-4.5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleCreateRestaurant} className="p-6 space-y-4 text-xs font-semibold text-slate-600">
               <div>
                 <label className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Restaurant Name *</label>
@@ -996,11 +992,10 @@ export default function AdminDashboard() {
                               ₹{order.totalAmount}
                             </td>
                             <td className="px-5 py-3.5">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                                order.orderStatus === 'Delivered' ? 'bg-green-50 border-green-200 text-green-700' :
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${order.orderStatus === 'Delivered' ? 'bg-green-50 border-green-200 text-green-700' :
                                 order.orderStatus === 'Rejected' ? 'bg-red-50 border-red-200 text-red-700' :
-                                'bg-primary-50 border-primary-100 text-primary-700'
-                              }`}>
+                                  'bg-primary-50 border-primary-100 text-primary-700'
+                                }`}>
                                 {order.orderStatus}
                               </span>
                             </td>
@@ -1012,7 +1007,7 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-            
+
             {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end text-xs">
               <button
