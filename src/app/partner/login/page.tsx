@@ -19,12 +19,10 @@ export default function PartnerLoginPage() {
   // UI States
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState('');
 
   const handleOwnerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setResetSuccess('');
     setLoading(true);
 
     try {
@@ -62,7 +60,6 @@ export default function PartnerLoginPage() {
   const handleRiderLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setResetSuccess('');
 
     if (!phone.trim()) {
       setError('Please enter your registered phone number');
@@ -91,32 +88,6 @@ export default function PartnerLoginPage() {
     }
   };
 
-  const fillOwnerDemo = (type: 'royal' | 'burger' | 'taco') => {
-    setError('');
-    setResetSuccess('');
-    setActiveTab('owner');
-    if (type === 'royal') {
-      setEmail('owner@example.com');
-    } else if (type === 'burger') {
-      setEmail('burger_owner@example.com');
-    } else {
-      setEmail('taco_owner@example.com');
-    }
-    setPassword('password123');
-  };
-
-  const fillRiderDemo = (type: 'royal' | 'burger' | 'taco') => {
-    setError('');
-    setResetSuccess('');
-    setActiveTab('rider');
-    if (type === 'royal') {
-      setPhone('9876543210');
-    } else if (type === 'burger') {
-      setPhone('9876543211');
-    } else {
-      setPhone('9876543212');
-    }
-  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
@@ -254,6 +225,37 @@ export default function PartnerLoginPage() {
             </form>
           )}
 
+          {/* Quick Demo Login Autofills */}
+          <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+            <h4 className="font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Info className="h-4 w-4 text-slate-400" />
+              Demo Phase Autofills
+            </h4>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('owner');
+                  setEmail('owner@example.com');
+                  setPassword('password123');
+                }}
+                className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 p-2 rounded-lg font-bold text-slate-700 transition-all text-[11px] shadow-sm text-center"
+              >
+                Royal India Owner
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('rider');
+                  setPhone('9876543210');
+                }}
+                className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 p-2 rounded-lg font-bold text-slate-700 transition-all text-[11px] shadow-sm text-center"
+              >
+                John Driver Rider
+              </button>
+            </div>
+          </div>
+
           {/* Registration Redirect CTA */}
           <div className="mt-8 pt-6 border-t border-slate-100 text-center space-y-2">
             <p className="text-xs font-extrabold text-slate-450 uppercase tracking-wider">
@@ -267,51 +269,6 @@ export default function PartnerLoginPage() {
             </Link>
           </div>
 
-          {/* Quick Demo Autofill section for partners */}
-          <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Info className="h-3.5 w-3.5 text-slate-400" />
-              Quick Partner Demo Accounts
-            </h4>
-
-            <div className="grid grid-cols-1 gap-2.5">
-              {/* Royal India */}
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-slate-700 block">Royal India</span>
-                  <span className="text-[9.5px] text-slate-400">owner@example.com | 9876543210</span>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => fillOwnerDemo('royal')} className="text-[9px] font-bold text-primary-600 hover:underline">Fill Owner</button>
-                  <button type="button" onClick={() => fillRiderDemo('royal')} className="text-[9px] font-bold text-primary-600 hover:underline">Fill Rider</button>
-                </div>
-              </div>
-
-              {/* Burger Lab */}
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-slate-700 block">The Burger Lab</span>
-                  <span className="text-[9.5px] text-slate-400">burger_owner@example.com | 9876543211</span>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => fillOwnerDemo('burger')} className="text-[9px] font-bold text-primary-600 hover:underline">Fill Owner</button>
-                  <button type="button" onClick={() => fillRiderDemo('burger')} className="text-[9px] font-bold text-primary-600 hover:underline">Fill Rider</button>
-                </div>
-              </div>
-
-              {/* Taco Fiesta */}
-              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-slate-700 block">Taco Fiesta</span>
-                  <span className="text-[9.5px] text-slate-400">taco_owner@example.com | 9876543212</span>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => fillOwnerDemo('taco')} className="text-[9px] font-bold text-primary-600 hover:underline">Fill Owner</button>
-                  <button type="button" onClick={() => fillRiderDemo('taco')} className="text-[9px] font-bold text-primary-600 hover:underline">Fill Rider</button>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Customer login link */}
           <div className="mt-6 text-center">

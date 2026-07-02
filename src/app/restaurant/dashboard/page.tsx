@@ -30,6 +30,8 @@ interface Order {
     name: string;
     phone: string;
   };
+  restaurantRating?: number | null;
+  deliveryRating?: number | null;
   createdAt: string;
 }
 
@@ -155,6 +157,26 @@ export default function OwnerDashboard() {
     }
   };
 
+  const handleToggleActiveStatus = async () => {
+    const newStatus = restaurantStatus === 'active' ? 'inactive' : 'active';
+    try {
+      const res = await fetch(`/api/restaurants/${restaurantId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setRestaurantStatus(newStatus);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update store status');
+      }
+    } catch (err) {
+      console.error('Toggle active status error:', err);
+      alert('An error occurred while updating store status.');
+    }
+  };
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -185,6 +207,10 @@ export default function OwnerDashboard() {
 
   // Staff assignment selection state
   const [assignedRiderMap, setAssignedRiderMap] = useState<Record<string, string>>({});
+
+  // Order Details Modal for Owner
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null);
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
 
 
 
@@ -420,6 +446,11 @@ export default function OwnerDashboard() {
       return;
     }
 
+    const isOut = orders.some(o => o.assignedStaffId?._id === staffId && o.orderStatus === 'Out for Delivery');
+    if (isOut) {
+      alert("Order will be delayed, assign new");
+    }
+
     try {
       const res = await fetch(`/api/orders/${orderId}/assign`, {
         method: 'PATCH',
@@ -651,19 +682,35 @@ export default function OwnerDashboard() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 leading-tight">{restaurantName}</h1>
             </div>
           </div>
-
-          {/* Audio Alert Status Info */}
-          <div className="flex items-center gap-2 bg-primary-50 px-3 py-2 rounded-xl text-xs font-bold text-primary-800 self-start sm:self-auto">
-            <Volume2 className="h-4 w-4 text-primary-600 animate-pulse flex-shrink-0" />
-            <span className="whitespace-nowrap">Kitchen Alerts Active</span>
-            {audioPermissionAlert && (
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            {/* Status Toggle Button */}
+            {restaurantStatus !== 'pending' && (
               <button
-                onClick={() => { playAudioAlert(); setAudioPermissionAlert(false); }}
-                className="ml-1 bg-primary-600 hover:bg-primary-700 text-white px-2 py-0.5 rounded text-[10px] uppercase font-black whitespace-nowrap"
+                onClick={handleToggleActiveStatus}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+                  restaurantStatus === 'active'
+                    ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
               >
-                Test Sound
+                <span className={`h-2 w-2 rounded-full ${restaurantStatus === 'active' ? 'bg-green-600 animate-pulse' : 'bg-slate-400'}`} />
+                Store: {restaurantStatus === 'active' ? 'Open (Active)' : 'Closed (Inactive)'}
               </button>
             )}
+
+            {/* Audio Alert Status Info */}
+            <div className="flex items-center gap-2 bg-primary-50 px-3 py-2 rounded-xl text-xs font-bold text-primary-800">
+              <Volume2 className="h-4 w-4 text-primary-600 animate-pulse flex-shrink-0" />
+              <span className="whitespace-nowrap">Kitchen Alerts Active</span>
+              {audioPermissionAlert && (
+                <button
+                  onClick={() => { playAudioAlert(); setAudioPermissionAlert(false); }}
+                  className="ml-1 bg-primary-600 hover:bg-primary-700 text-white px-2 py-0.5 rounded text-[10px] uppercase font-black whitespace-nowrap"
+                >
+                  Test Sound
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -671,9 +718,9 @@ export default function OwnerDashboard() {
       {restaurantStatus !== 'active' && (
         <div className={`p-4.5 rounded-2xl border flex items-center gap-3.5 ${restaurantStatus === 'pending'
           ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm'
-          : 'bg-red-50 border-red-200 text-red-900 shadow-sm'
+          : 'bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
           }`}>
-          <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${restaurantStatus === 'pending' ? 'bg-amber-500/10 text-amber-600' : 'bg-red-500/10 text-red-600'
+          <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${restaurantStatus === 'pending' ? 'bg-amber-500/10 text-amber-600' : 'bg-slate-500/10 text-slate-600'
             }`}>
             <ShieldAlert className="h-5 w-5 animate-pulse" />
           </div>
@@ -681,12 +728,12 @@ export default function OwnerDashboard() {
             <h4 className="text-sm font-extrabold">
               {restaurantStatus === 'pending'
                 ? 'Store Setup - Awaiting Approval'
-                : 'Service Interrupted - Deactivated'}
+                : 'Store Closed to Customers'}
             </h4>
             <p className="text-xs font-semibold opacity-90 mt-0.5 leading-relaxed">
               {restaurantStatus === 'pending'
                 ? 'Your registration has been submitted successfully and is currently pending review by the platform administrator. You can configure your store brand identity below.'
-                : 'Your storefront service is currently disabled. Active customers cannot find your store or place orders at this time.'}
+                : 'Your store is currently closed. Customers can view your menu but cannot place new orders until you toggle it back to Open.'}
             </p>
           </div>
         </div>
@@ -734,7 +781,7 @@ export default function OwnerDashboard() {
 
       {/* 1. ORDERS TAB */}
       {activeTab === 'orders' && (
-        restaurantStatus !== 'active' ? renderLockoutView() : (
+        restaurantStatus === 'pending' ? renderLockoutView() : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
             {/* Active Incoming / Cooking (Col 1-2) */}
@@ -819,6 +866,12 @@ export default function OwnerDashboard() {
                       {/* Status Controllers */}
                       <div className="pt-3 border-t border-slate-100 flex flex-col gap-3">
                         <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => { setSelectedOrderDetail(order); setShowOrderDetailModal(true); }}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl flex items-center gap-1 shadow-sm"
+                          >
+                            More Details
+                          </button>
                           {order.orderStatus === 'Placed' && (
                             <>
                               <button
@@ -854,11 +907,14 @@ export default function OwnerDashboard() {
                               className="flex-1 text-xs p-2 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 font-bold text-slate-700"
                             >
                               <option value="">-- Choose Staff Rider --</option>
-                              {staffList.map((rider) => (
-                                <option key={rider._id} value={rider._id}>
-                                  {rider.name} ({rider.phone})
-                                </option>
-                              ))}
+                              {staffList.map((rider) => {
+                                const isOut = orders.some(o => o.assignedStaffId?._id === rider._id && o.orderStatus === 'Out for Delivery');
+                                return (
+                                  <option key={rider._id} value={rider._id}>
+                                    {rider.name} ({rider.phone}){isOut ? ' - Out for Delivery' : ''}
+                                  </option>
+                                );
+                              })}
                             </select>
                             <button
                               onClick={() => handleAssignRider(order._id)}
@@ -899,14 +955,14 @@ export default function OwnerDashboard() {
                         <p className="font-bold text-slate-500 flex items-center gap-1 mt-1">
                           Rider: <strong className="text-slate-700">{order.assignedStaffId?.name}</strong>
                         </p>
+                        <button
+                          onClick={() => { setSelectedOrderDetail(order); setShowOrderDetailModal(true); }}
+                          className="mt-2 text-[10px] font-bold text-primary-600 hover:text-primary-750 underline focus:outline-none block"
+                        >
+                          More Details
+                        </button>
                       </div>
-                      {/* Display OTP for reference */}
-                      <div className="pt-2 border-t border-slate-50 flex justify-between items-center text-[10px] font-bold text-slate-400">
-                        <span>Secure Handshake OTP:</span>
-                        <span className="bg-slate-100 px-2.5 py-1 text-slate-800 font-black rounded-lg text-xs tracking-wider">
-                          {order.deliveryOTP}
-                        </span>
-                      </div>
+
                     </div>
                   ))}
                 </div>
@@ -923,6 +979,12 @@ export default function OwnerDashboard() {
                       <div>
                         <span className="text-slate-800 font-bold block">{o.customerId?.name}</span>
                         <span className="text-[10px] text-slate-400">ID: #{o._id.substring(18)}</span>
+                        <button
+                          onClick={() => { setSelectedOrderDetail(o); setShowOrderDetailModal(true); }}
+                          className="text-[9px] font-black text-primary-600 hover:text-primary-755 underline focus:outline-none block mt-0.5"
+                        >
+                          More Details
+                        </button>
                       </div>
                       <div className="text-right">
                         <span className="font-black text-slate-700 block">₹{o.totalAmount}</span>
@@ -943,7 +1005,7 @@ export default function OwnerDashboard() {
       )}
       {/* 2. MENU CRUD TAB */}
       {activeTab === 'menu' && (
-        restaurantStatus !== 'active' ? renderLockoutView() : (
+        restaurantStatus === 'pending' ? renderLockoutView() : (
           <div className="space-y-6">
 
 
@@ -1228,9 +1290,18 @@ export default function OwnerDashboard() {
                           <Phone className="h-3 w-3" /> {rider.phone}
                         </p>
                       </div>
-                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider bg-green-50 border border-green-200 text-green-700 uppercase">
-                        Online / Active
-                      </span>
+                      {(() => {
+                        const isOut = orders.some(o => o.assignedStaffId?._id === rider._id && o.orderStatus === 'Out for Delivery');
+                        return isOut ? (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider bg-amber-50 border border-amber-200 text-amber-700 uppercase">
+                            Out for Delivery
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider bg-green-50 border border-green-200 text-green-700 uppercase">
+                            Online / Active
+                          </span>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -1448,6 +1519,139 @@ export default function OwnerDashboard() {
             </form>
           </div>
 
+        </div>
+      )}
+
+      {/* OWNER ORDER DETAILS DEEP-DIVE MODAL */}
+      {showOrderDetailModal && selectedOrderDetail && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <span className="text-[10px] font-black text-primary-600 uppercase tracking-wider">Order Detail View</span>
+                <h3 className="font-extrabold text-slate-900 text-base mt-0.5">Order ID: #{selectedOrderDetail._id.substring(18)}</h3>
+              </div>
+              <button
+                onClick={() => { setShowOrderDetailModal(false); setSelectedOrderDetail(null); }}
+                className="h-8 w-8 rounded-full bg-white border border-slate-200/50 hover:bg-slate-50 text-slate-400 flex items-center justify-center font-bold text-sm shadow-sm"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5 text-xs text-slate-600 font-semibold overflow-y-auto max-h-[70vh]">
+              {/* Status & Date */}
+              <div className="flex justify-between items-center p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-black">Status</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                    selectedOrderDetail.orderStatus === 'Delivered' ? 'bg-green-100 text-green-800 border border-green-200' :
+                    selectedOrderDetail.orderStatus === 'Rejected' ? 'bg-red-100 text-red-800 border border-red-200' :
+                    'bg-primary-100 text-primary-800'
+                  }`}>
+                    {selectedOrderDetail.orderStatus}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-400 uppercase font-black">Placed At</p>
+                  <p className="text-slate-800 font-bold mt-1">
+                    {new Date(selectedOrderDetail.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1">Customer Profile</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-slate-450 text-[10px] font-bold uppercase tracking-wide">Name</p>
+                    <p className="text-slate-800 font-bold mt-0.5">{selectedOrderDetail.customerId?.name || 'Deleted Account'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-450 text-[10px] font-bold uppercase tracking-wide">Phone</p>
+                    <p className="text-slate-850 font-bold mt-0.5">{selectedOrderDetail.customerId?.phone || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="pt-1.5">
+                  <p className="text-slate-450 text-[10px] font-bold uppercase tracking-wide">Delivery Address</p>
+                  <p className="text-slate-800 font-semibold mt-0.5 leading-relaxed">{selectedOrderDetail.deliveryAddress}</p>
+                </div>
+              </div>
+
+              {/* Rider Info */}
+              {selectedOrderDetail.assignedStaffId && (
+                <div className="space-y-2 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
+                  <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Assigned Staff Rider</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-slate-400 text-[10px] font-bold uppercase">Rider Name</p>
+                      <p className="text-slate-700 font-bold mt-0.5">{selectedOrderDetail.assignedStaffId.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-[10px] font-bold uppercase">Rider Phone</p>
+                      <p className="text-slate-750 font-bold mt-0.5">{selectedOrderDetail.assignedStaffId.phone}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Items List */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1">Items Summary</h4>
+                <div className="divide-y divide-slate-50 border border-slate-100 rounded-2xl overflow-hidden bg-white">
+                  {selectedOrderDetail.items.map((item, idx) => (
+                    <div key={idx} className="p-3 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-extrabold text-slate-800">{item.name}</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">₹{item.price} x {item.quantity}</span>
+                      </div>
+                      <span className="font-black text-slate-900">₹{item.price * item.quantity}</span>
+                    </div>
+                  ))}
+                  <div className="p-3 bg-slate-50/70 flex justify-between items-center text-sm font-black text-slate-900">
+                    <span>Total Paid</span>
+                    <span>₹{selectedOrderDetail.totalAmount}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ratings / Feedback Section */}
+              {selectedOrderDetail.orderStatus === 'Delivered' && (
+                <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl space-y-3">
+                  <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                    ⭐ Customer Review Details
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-600">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-black block">Restaurant Quality</span>
+                      <span className="text-sm font-extrabold text-slate-800 mt-1 block">
+                        {selectedOrderDetail.restaurantRating ? `${selectedOrderDetail.restaurantRating} / 5 ★` : 'Not Rated Yet'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-black block">Delivery Service</span>
+                      <span className="text-sm font-extrabold text-slate-800 mt-1 block">
+                        {selectedOrderDetail.deliveryRating ? `${selectedOrderDetail.deliveryRating} / 5 ★` : 'Not Rated Yet'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+              <button
+                onClick={() => { setShowOrderDetailModal(false); setSelectedOrderDetail(null); }}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-850 text-white rounded-xl font-bold text-xs shadow-sm"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

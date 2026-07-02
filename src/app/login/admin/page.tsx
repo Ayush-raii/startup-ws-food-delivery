@@ -44,11 +44,6 @@ export default function AdminLoginPage() {
     }
   };
 
-  const fillAdminDemo = () => {
-    setError('');
-    setEmail('admin@example.com');
-    setPassword('admin123');
-  };
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-900">
@@ -124,16 +119,23 @@ export default function AdminLoginPage() {
             </div>
           </form>
 
-          {/* Quick Demo Fill */}
-          <div className="pt-4 border-t border-slate-700 text-center">
+          {/* Quick Demo Login Autofills */}
+          <div className="mt-6 p-4 bg-slate-900/60 border border-slate-700 rounded-2xl space-y-2 text-xs">
+            <h4 className="font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              Testing Phase Admin Credentials
+            </h4>
             <button
-              type="button"
-              onClick={fillAdminDemo}
-              className="text-xs text-amber-500 hover:text-amber-400 font-bold hover:underline"
+              onClick={() => {
+                setEmail('admin@example.com');
+                setPassword('admin123');
+              }}
+              className="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl font-bold text-slate-350 flex justify-between items-center transition-all shadow-sm text-xs"
             >
-              Autofill Seeder Admin Credentials
+              <span>System Admin Account</span>
+              <span className="text-[10px] text-slate-500 font-medium">Click to Autofill</span>
             </button>
           </div>
+
         </div>
       </div>
     </div>

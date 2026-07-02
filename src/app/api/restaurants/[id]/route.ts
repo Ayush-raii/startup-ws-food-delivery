@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { name, bannerImage, cuisineTags, latitude, longitude } = await req.json();
+    const { name, bannerImage, cuisineTags, latitude, longitude, status } = await req.json();
 
     const restaurant = await Restaurant.findById(id);
     if (!restaurant) {
@@ -75,6 +75,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
     if (longitude !== undefined) {
       restaurant.longitude = Number(longitude);
+    }
+    if (status !== undefined) {
+      if (!['active', 'inactive'].includes(status)) {
+        return NextResponse.json({ error: 'Invalid status option' }, { status: 400 });
+      }
+      restaurant.status = status;
     }
 
     await restaurant.save();

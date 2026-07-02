@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, ArrowRight, ClipboardCheck, MapPin, Clock } from 'lucide-react';
+import { Search, ArrowRight, ClipboardCheck, MapPin, Clock, X, Navigation } from 'lucide-react';
 
 // Hero background image URL. Customize this URL to change the hero banner background image.
 const HERO_BACKGROUND_IMAGE = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1600';
@@ -56,21 +56,60 @@ export default function CustomerDashboard() {
   // Load saved GPS coords from localStorage (set by checkout page)
   const [userCoordinates, setUserCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
+  // Geolocation and modal states
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [tempLat, setTempLat] = useState('28.6139');
+  const [tempLng, setTempLng] = useState('77.2090');
+  const [tempAddress, setTempAddress] = useState('');
+  const [retrievingLocation, setRetrievingLocation] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem('user_location');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.lat && parsed.lng) {
-          setUserCoordinates({ lat: parsed.lat, lng: parsed.lng });
+        if (parsed && parsed.lat && parsed.lng) {
+          setUserCoordinates({ lat: Number(parsed.lat), lng: Number(parsed.lng) });
+          return;
         }
       } catch (e) {
         console.error('Failed to parse saved location from localStorage:', e);
       }
     }
+
+    // Auto-retrieve location on first load for a new customer
+    if (navigator.geolocation) {
+      setRetrievingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUserCoordinates(coords);
+          localStorage.setItem('user_location', JSON.stringify({
+            lat: coords.lat,
+            lng: coords.lng,
+            address: `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`
+          }));
+          setRetrievingLocation(false);
+        },
+        (error) => {
+          console.error('Geolocation auto-detection failed:', error);
+          setRetrievingLocation(false);
+          // Set Delhi as fallback default so dashboard doesn't break, but they can change it
+          const fallback = { lat: 28.6139, lng: 77.2090 };
+          setUserCoordinates(fallback);
+          localStorage.setItem('user_location', JSON.stringify({
+            lat: fallback.lat,
+            lng: fallback.lng,
+            address: 'Delhi Central (Default fallback)'
+          }));
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      // Fallback
+      setUserCoordinates({ lat: 28.6139, lng: 77.2090 });
+    }
   }, []);
-
-
 
   useEffect(() => {
     async function fetchData() {
@@ -146,16 +185,178 @@ export default function CustomerDashboard() {
 
   const categories = ['All', 'Starters', 'Main Course', 'Desserts'];
 
+  const hasRestaurantsInRange = restaurants.length > 0 && restaurants.some(rest => {
+    const dist = calculateDistance(rest);
+    return dist <= 20;
+  });
+
+  const renderLocationModal = () => (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl border border-slate-100 max-w-md w-full p-6 shadow-xl space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-black text-slate-900">Change Delivery Location</h3>
+          <button
+            onClick={() => setShowLocationModal(false)}
+            className="text-slate-400 hover:text-slate-600 font-extrabold"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500">Latitude</label>
+              <input
+                type="number"
+                step="0.000001"
+                value={tempLat}
+                onChange={(e) => setTempLat(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-semibold text-slate-800"
+                placeholder="e.g. 28.6139"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500">Longitude</label>
+              <input
+                type="number"
+                step="0.000001"
+                value={tempLng}
+                onChange={(e) => setTempLng(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-semibold text-slate-800"
+                placeholder="e.g. 77.2090"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500">Custom Address Name (Optional)</label>
+            <input
+              type="text"
+              value={tempAddress}
+              onChange={(e) => setTempAddress(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-semibold text-slate-800"
+              placeholder="e.g. Home, Office, GPS Location"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    setTempLat(position.coords.latitude.toString());
+                    setTempLng(position.coords.longitude.toString());
+                  },
+                  (error) => alert('Geolocation failed: ' + error.message)
+                );
+              }
+            }}
+            className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-200/50"
+          >
+            <Navigation className="h-4 w-4 text-slate-550" />
+            Detect Current GPS coordinates
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100 flex justify-end gap-3">
+          <button
+            onClick={() => setShowLocationModal(false)}
+            className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              const latNum = Number(tempLat);
+              const lngNum = Number(tempLng);
+              if (isNaN(latNum) || isNaN(lngNum)) {
+                alert('Please enter valid numerical latitude and longitude.');
+                return;
+              }
+              const addrStr = tempAddress.trim() || `GPS: ${latNum.toFixed(6)}, ${lngNum.toFixed(6)}`;
+              const payload = { lat: latNum, lng: lngNum, address: addrStr };
+              localStorage.setItem('user_location', JSON.stringify(payload));
+              setUserCoordinates({ lat: latNum, lng: lngNum });
+              setShowLocationModal(false);
+            }}
+            className="px-5 py-2 bg-primary-600 hover:bg-primary-750 text-white rounded-xl text-xs font-bold shadow-md shadow-primary-100"
+          >
+            Confirm Location
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // If the user has a location but there are no restaurants within 20km of it
+  if (userCoordinates && !loading && !hasRestaurantsInRange) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-6">
+        <div className="mx-auto h-20 w-20 bg-amber-50 rounded-full flex items-center justify-center border border-amber-200 shadow-inner">
+          <MapPin className="h-10 w-10 text-amber-500 animate-bounce" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-slate-800">We are not currently serving in your place</h2>
+          <p className="text-slate-500 text-sm leading-relaxed font-semibold">
+            We are not currently serving in your area. Shortly we will start.
+          </p>
+        </div>
+        <div className="pt-4">
+          <button
+            onClick={() => {
+              setTempLat(userCoordinates.lat.toString());
+              setTempLng(userCoordinates.lng.toString());
+              setTempAddress('');
+              setShowLocationModal(true);
+            }}
+            className="bg-primary-600 hover:bg-primary-750 text-white font-bold text-xs px-6 py-3.5 rounded-xl transition-all shadow-md shadow-primary-200 animate-pulse"
+          >
+            Change Location
+          </button>
+        </div>
+
+        {/* Change Location Modal */}
+        {showLocationModal && renderLocationModal()}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-10">
       
+      {/* Location Bar */}
+      <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-primary-500 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Delivery Location</p>
+            <p className="text-xs sm:text-sm font-bold text-slate-700 truncate mt-0.5">
+              {userCoordinates
+                ? `Latitude: ${userCoordinates.lat.toFixed(6)}, Longitude: ${userCoordinates.lng.toFixed(6)}`
+                : 'Delhi Central (Default fallback)'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setTempLat(userCoordinates ? userCoordinates.lat.toString() : '28.6139');
+            setTempLng(userCoordinates ? userCoordinates.lng.toString() : '77.2090');
+            setTempAddress('');
+            setShowLocationModal(true);
+          }}
+          className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all"
+        >
+          Change Location
+        </button>
+      </div>
+
       {/* Hero Banner Section */}
       <div 
         className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md border border-slate-100 bg-cover bg-center h-36 sm:h-64"
         style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})` }}
       />
-
-
 
       {/* Main Content Area */}
       <div id="restaurants-section" className="scroll-mt-24 space-y-4 sm:space-y-6">
@@ -231,7 +432,9 @@ export default function CustomerDashboard() {
               <Link
                 href={`/customer/restaurant/${restaurant._id}`}
                 key={restaurant._id}
-                className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-100 hover:shadow-md transition-all flex flex-row sm:flex-col p-2.5 sm:p-0 gap-3 sm:gap-0 h-auto sm:h-full items-center sm:items-stretch"
+                className={`group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-100 hover:shadow-md transition-all flex flex-row sm:flex-col p-2.5 sm:p-0 gap-3 sm:gap-0 h-auto sm:h-full items-center sm:items-stretch ${
+                  restaurant.status === 'inactive' ? 'grayscale opacity-75' : ''
+                }`}
               >
                 {/* Banner */}
                 <div className="relative w-24 h-24 sm:w-full sm:h-44 bg-slate-100 overflow-hidden rounded-lg sm:rounded-none flex-shrink-0">
@@ -240,6 +443,13 @@ export default function CustomerDashboard() {
                     alt={restaurant.name}
                     className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-300"
                   />
+                  {restaurant.status === 'inactive' && (
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center">
+                      <span className="bg-red-600 text-white font-extrabold text-[9px] sm:text-[10px] tracking-wider uppercase px-2.5 py-1 rounded shadow-md">
+                        Closed
+                      </span>
+                    </div>
+                  )}
                   <div className="absolute top-1.5 right-1.5 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[9px] font-black text-slate-800 shadow-sm sm:top-3 sm:right-3 sm:px-2.5 sm:py-1 sm:text-[10px]">
                     {restaurant.averageRating !== null && restaurant.averageRating !== undefined
                       ? `${restaurant.averageRating} ★`
@@ -278,8 +488,9 @@ export default function CustomerDashboard() {
                         <span>{restaurant.distance} km</span>
                       </div>
                     </div>
-                    <span className="text-primary-600 font-extrabold flex items-center gap-0.5">
-                      Order <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    <span className={`${restaurant.status === 'inactive' ? 'text-slate-400' : 'text-primary-600'} font-extrabold flex items-center gap-0.5`}>
+                      {restaurant.status === 'inactive' ? 'Browse Menu' : 'Order'}{' '}
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
                     </span>
                   </div>
                 </div>
@@ -357,7 +568,7 @@ export default function CustomerDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-800 truncate">{order.restaurantId.name}</span>
                           <span className={`flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
-                            order.orderStatus === 'Delivered' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
+                            order.orderStatus === 'Delivered' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
                           }`}>
                             {order.orderStatus}
                           </span>
@@ -382,6 +593,9 @@ export default function CustomerDashboard() {
           </div>
         )}
       </div>
+
+      {/* Change Location Modal */}
+      {showLocationModal && renderLocationModal()}
     </div>
   );
 }

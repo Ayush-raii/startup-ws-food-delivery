@@ -202,6 +202,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleForceCompleteOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to force complete this delivery?')) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Delivered' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Order completed successfully by admin!');
+        // Refresh the modal orders
+        if (selectedRestId) {
+          handleViewRestaurantOrders(selectedRestId, selectedRestName);
+        }
+        fetchAdminData(true);
+      } else {
+        alert(data.error || 'Failed to update order status');
+      }
+    } catch (err) {
+      console.error('Admin force complete error:', err);
+      alert('An error occurred while updating order status.');
+    }
+  };
+
   const handleCreateRestaurant = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -955,6 +982,7 @@ export default function AdminDashboard() {
                         <th className="px-5 py-3">Items Purchased</th>
                         <th className="px-5 py-3">Total Amount</th>
                         <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-750">
@@ -998,6 +1026,17 @@ export default function AdminDashboard() {
                                 }`}>
                                 {order.orderStatus}
                               </span>
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              {!['Delivered', 'Rejected'].includes(order.orderStatus) && (
+                                <button
+                                  onClick={() => handleForceCompleteOrder(order._id)}
+                                  className="bg-green-600 hover:bg-green-700 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm transition-all"
+                                  title="Force complete this delivery"
+                                >
+                                  Complete Delivery
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );

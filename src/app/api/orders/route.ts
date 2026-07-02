@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import { Order } from '@/lib/models/Order';
+import { Restaurant } from '@/lib/models/Restaurant';
 import { getUserFromRequest } from '@/lib/auth';
 
 // Fetch orders depending on user role
@@ -58,6 +59,14 @@ export async function POST(req: NextRequest) {
 
     if (!restaurantId || !items || !items.length || !totalAmount || !deliveryAddress) {
       return NextResponse.json({ error: 'Invalid order details' }, { status: 400 });
+    }
+
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+    if (restaurant.status !== 'active') {
+      return NextResponse.json({ error: 'This restaurant is currently closed for the day and not accepting new orders' }, { status: 400 });
     }
 
     const newOrder = new Order({

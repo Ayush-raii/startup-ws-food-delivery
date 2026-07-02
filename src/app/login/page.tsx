@@ -15,13 +15,10 @@ export default function LoginPage() {
   // General UI States
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setResetSuccess('');
     setLoading(true);
 
     try {
@@ -53,30 +50,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleResetDatabase = async () => {
-    setError('');
-    setResetSuccess('');
-    setResetting(true);
-    try {
-      const res = await fetch('/api/auth/reset', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to reset database');
-      }
-      setResetSuccess('Database reset and re-seeded successfully!');
-    } catch (err: any) {
-      setError(err.message || 'Database reset failed');
-    } finally {
-      setResetting(false);
-    }
-  };
-
-  const fillDemoAccount = () => {
-    setError('');
-    setResetSuccess('');
-    setEmail('customer@example.com');
-    setPassword('password123');
-  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
@@ -101,11 +74,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {resetSuccess && (
-            <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm font-medium flex items-start gap-2">
-              <span className="font-bold">Success:</span> {resetSuccess}
-            </div>
-          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
@@ -166,6 +134,24 @@ export default function LoginPage() {
             </div>
           </form>
 
+          {/* Quick Demo Login Autofills */}
+          <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Info className="h-4 w-4 text-slate-400" />
+              Demo Phase Autofills
+            </h4>
+            <button
+              onClick={() => {
+                setEmail('customer@example.com');
+                setPassword('password123');
+              }}
+              className="w-full text-left bg-white hover:bg-slate-50 border border-slate-200/60 p-2.5 rounded-lg text-xs font-bold text-slate-700 flex justify-between items-center transition-all shadow-sm"
+            >
+              <span>Customer Demo Account</span>
+              <span className="text-[10px] text-slate-400 font-medium">Click to Autofill</span>
+            </button>
+          </div>
+
           {/* Registration Redirect */}
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-500">
@@ -176,40 +162,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Quick Seeder Demo Account */}
-          <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                <Info className="h-3.5 w-3.5 text-slate-400" />
-                Quick Demo Account
-              </h4>
-              <button
-                type="button"
-                onClick={handleResetDatabase}
-                disabled={resetting}
-                className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-2 py-1 rounded transition-colors disabled:opacity-50"
-              >
-                {resetting ? 'Resetting...' : 'Reset Database'}
-              </button>
-            </div>
-
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary-500" />
-                <div>
-                  <span className="text-[11px] font-bold text-slate-700 block leading-tight">Alice Customer</span>
-                  <span className="text-[9px] text-slate-400">customer@example.com (password123)</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={fillDemoAccount}
-                className="text-[10px] font-bold text-primary-600 hover:underline px-2"
-              >
-                Autofill
-              </button>
-            </div>
-          </div>
 
           {/* Footer Partner Link */}
           <div className="mt-8 pt-6 border-t border-slate-100 text-center">

@@ -90,6 +90,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
       await order.save();
       return NextResponse.json({ message: 'Order status updated successfully', order });
+    } else if (user.role === 'admin') {
+      if (status !== 'Delivered') {
+        return NextResponse.json({ error: 'Admin can only force complete (Delivered) orders' }, { status: 400 });
+      }
+      order.orderStatus = 'Delivered';
+      await order.save();
+      return NextResponse.json({ message: 'Order status force completed by admin', order });
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

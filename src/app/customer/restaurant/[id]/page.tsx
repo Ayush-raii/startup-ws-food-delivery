@@ -39,6 +39,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
   const [vegFilter, setVegFilter] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'All' | 'Starters' | 'Main Course' | 'Desserts'>('All');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [deliveryConfig, setDeliveryConfig] = useState<{ deliveryFreeDistance: number; deliveryBaseFee: number; deliveryRatePerKm: number } | null>(null);
 
   const { addToCart, updateQuantity, getItemQuantity, cartItems, getCartTotal, clearCart, restaurantId } = useCart();
 
@@ -57,21 +58,61 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
   }, []);
 
   useEffect(() => {
-    async function fetchRestaurant() {
+    async function fetchRestaurantAndConfig() {
       try {
-        const res = await fetch(`/api/restaurants/${id}`);
-        if (res.ok) {
-          const data = await res.json();
+        const [resRest, resConfig] = await Promise.all([
+          fetch(`/api/restaurants/${id}`),
+          fetch('/api/settings/delivery')
+        ]);
+        if (resRest.ok) {
+          const data = await resRest.json();
           setRestaurant(data.restaurant);
         }
+        if (resConfig.ok) {
+          const data = await resConfig.json();
+          setDeliveryConfig(data.config);
+        }
       } catch (err) {
-        console.error('Failed to fetch restaurant:', err);
+        console.error('Failed to fetch restaurant or config details:', err);
       } finally {
         setLoading(false);
       }
     }
-    fetchRestaurant();
+    fetchRestaurantAndConfig();
   }, [id]);
+
+  const getDistanceInKmValue = () => {
+    if (!restaurant) return null;
+    const lat2 = restaurant.latitude !== undefined ? restaurant.latitude : 28.6139;
+    const lng2 = restaurant.longitude !== undefined ? restaurant.longitude : 77.2090;
+
+    const lat1 = userCoords ? userCoords.lat : 28.6139;
+    const lng1 = userCoords ? userCoords.lng : 77.2090;
+
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lng2 - lng1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const getDeliveryFee = () => {
+    const baseFallback = deliveryConfig ? deliveryConfig.deliveryBaseFee : 40;
+    const dist = getDistanceInKmValue();
+    if (dist === null || !deliveryConfig) {
+      return baseFallback;
+    }
+    if (dist <= deliveryConfig.deliveryFreeDistance) {
+      return 0;
+    }
+    const extraDist = dist - deliveryConfig.deliveryFreeDistance;
+    const computedFee = deliveryConfig.deliveryBaseFee + extraDist * deliveryConfig.deliveryRatePerKm;
+    return Math.round(computedFee);
+  };
 
   // Distance calculation helper
   const getDistanceStr = () => {
@@ -175,6 +216,13 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
             </div>
           </div>
         </div>
+
+        {restaurant.status === 'inactive' && (
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-800 text-xs sm:text-sm font-bold flex items-center gap-2">
+            <Info className="h-5 w-5 text-red-600 flex-shrink-0" />
+            This kitchen is currently closed for the day and not accepting new orders. You can browse their menu catalog but cannot place orders.
+          </div>
+        )}
 
         {/* Filters and Search Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
@@ -330,28 +378,36 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
               </div>
               <div className="flex justify-between">
                 <span>Delivery (Kitchen Staff)</span>
-                <span className="font-bold text-slate-700">₹40</span>
+                <span className="font-bold text-slate-700">₹{getDeliveryFee()}</span>
               </div>
               <div className="flex justify-between pt-3 border-t border-slate-50 text-sm font-extrabold text-slate-900">
                 <span>Total Amount</span>
-                <span>₹{getCartTotal() + 40}</span>
+                <span>₹{getCartTotal() + getDeliveryFee()}</span>
               </div>
             </div>
 
             {/* Actions */}
             <div className="space-y-3">
-              <Link
-                href="/checkout"
-                className="w-full flex justify-center items-center gap-1.5 py-3 rounded-xl bg-primary-600 text-white font-bold text-sm shadow-md hover:bg-primary-700 transition-colors"
-              >
-                Proceed to Checkout
-              </Link>
-              <div className="p-3 bg-primary-50/20 border border-primary-100 rounded-2xl flex gap-2">
-                <Info className="h-4 w-4 text-primary-600 flex-shrink-0 mt-0.5" />
-                <p className="text-[10px] text-primary-800 leading-normal font-medium">
-                  Deliveries are handled entirely by <strong>{restaurant.name}</strong>'s internal team. Fast-tracked and secure.
-                </p>
-              </div>
+              {restaurant.status === 'inactive' ? (
+                <div className="p-3.5 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-center font-bold text-xs">
+                  This kitchen is currently closed. Ordering is disabled.
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/checkout"
+                    className="w-full flex justify-center items-center gap-1.5 py-3 rounded-xl bg-primary-600 text-white font-bold text-sm shadow-md hover:bg-primary-700 transition-colors"
+                  >
+                    Proceed to Checkout
+                  </Link>
+                  <div className="p-3 bg-primary-50/20 border border-primary-100 rounded-2xl flex gap-2">
+                    <Info className="h-4 w-4 text-primary-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-primary-800 leading-normal font-medium">
+                      Deliveries are handled entirely by <strong>{restaurant.name}</strong>'s internal team. Fast-tracked and secure.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
           </div>
@@ -388,7 +444,11 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
             <img src={item.image} alt={item.name} className="object-cover h-full w-full" />
           </div>
 
-          {item.isAvailable ? (
+          {restaurant?.status === 'inactive' ? (
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 uppercase tracking-wider">
+              Closed
+            </span>
+          ) : item.isAvailable ? (
             qty > 0 ? (
               <div className="flex items-center gap-2.5 bg-slate-900 text-white rounded-xl px-2.5 py-1.5 shadow-sm">
                 <button

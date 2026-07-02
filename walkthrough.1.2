@@ -1,0 +1,50 @@
+# Walkthrough - Store Closure Toggle, Grayscale View & Order Blocking
+
+We have successfully implemented the store closure feature, allowing restaurant owners to toggle their status between Open and Closed, showing closed stores in grayscale to customers, hiding all order actions on the menu and checkout, and enforcing this check at the API level.
+
+---
+
+## 🛠️ Work Done
+
+### 1. Restaurant Status Toggle (Owner Dashboard)
+- Added a status toggle button inside the header of [restaurant/dashboard/page.tsx](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/restaurant/dashboard/page.tsx):
+  - Displays `Store: Open (Active)` in green when open, and `Store: Closed (Inactive)` in grey when closed.
+  - Clicking it triggers a PATCH call to `/api/restaurants/[id]` to update the store status in the database.
+- Removed deactivation lockout screens for the `inactive` state. Owners are **not** locked out of their own dashboard when their store is closed, allowing them to toggle it back open or manage items freely. A friendly closed notice is displayed instead.
+
+### 2. Grayscale Restaurant Cards (Customer Dashboard)
+- Updated [customer/dashboard/page.tsx](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/customer/dashboard/page.tsx):
+  - Inactive restaurants are styled in grayscale (`grayscale opacity-75`) to indicate they are closed.
+  - A semi-transparent overlay banner containing the text `"CLOSED"` is rendered on top of the restaurant's image.
+  - Toggle button text changes from `Order` to `Browse Menu`.
+
+### 3. Order Button Blocking & Checkout Hiding (Restaurant Menu)
+- Updated [customer/restaurant/[id]/page.tsx](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/customer/restaurant/%5Bid%5D/page.tsx):
+  - Displays a closed info notification at the top: *"This kitchen is currently closed for the day and not accepting new orders. You can browse their menu catalog but cannot place orders."*
+  - Replaces all dish `"ADD"` buttons and quantity selectors with a grey static `"CLOSED"` badge, making it impossible to add items from a closed kitchen to the cart.
+  - Hides the Checkout button inside the Cart sidebar and shows a notice: *"This kitchen is currently closed. Ordering is disabled."*
+
+### 4. API & Database Updates
+- **PATCH API** ([/api/restaurants/[id]](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/api/restaurants/%5Bid%5D/route.ts)): Allows restaurant owners to update the `status` field to `active` or `inactive`.
+- **GET API** ([/api/restaurants](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/api/restaurants/route.ts)): Returns both active and inactive restaurants, so customers can browse inactive listings.
+- **POST API** ([/api/orders](file:///c:/Users/ayush/OneDrive/Desktop/antigravity/food%20app/src/app/api/orders/route.ts)): Enforces status verification. If a restaurant is closed, it rejects the placement with a `400` error: *"This restaurant is currently closed for the day and not accepting new orders"*.
+
+---
+
+## 🚦 Verification Instructions
+
+### 1. Toggle Store Closure
+- Log in as a Restaurant Owner (e.g. Royal India - `owner@example.com` / `password123`).
+- Locate the status toggle button in the top-right header: click it to close the store.
+- Confirm the header status shows `Store: Closed (Inactive)` and a grey banner says `Store Closed to Customers`. You should still have full dashboard access.
+
+### 2. View Grayscale Listings
+- Log in as a Customer (`customer@example.com` / `password123`).
+- In the listing grid, verify **Royal India** is shown in grayscale with a `"CLOSED"` overlay banner.
+- Verify the action button says `"Browse Menu"`.
+
+### 3. Verify Order Actions are Hidden
+- Click on Royal India to open its menu page.
+- Verify the red notification banner is displayed at the top.
+- Check the menu items: verify there are **no ADD buttons**, only static `"CLOSED"` labels.
+- Verify the Cart Sidebar displays *"This kitchen is currently closed. Ordering is disabled."* and there are **no proceed to checkout actions**.

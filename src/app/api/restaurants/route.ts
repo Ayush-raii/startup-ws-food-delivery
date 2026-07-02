@@ -8,7 +8,7 @@ import { Order } from '@/lib/models/Order';
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    const restaurants = await Restaurant.find({ status: 'active' }).lean();
+    const restaurants = await Restaurant.find({ status: { $in: ['active', 'inactive'] } }).lean();
     const ratedOrders = await Order.find({
       orderStatus: 'Delivered',
       restaurantRating: { $ne: null }
